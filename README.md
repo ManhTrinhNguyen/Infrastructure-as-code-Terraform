@@ -165,8 +165,22 @@
 
 - Bcs it intergrate with many diffent platform , I have 1 tools to intergrate all those different technologies and their API . So I don't need to learn a API of each tool to talk to them 
 
+## Install Terraform (https://developer.hashicorp.com/terraform/downloads)
 
+- Install via package manager
 
+    - For Mac OS :
+ 
+    ```
+    brew tap hashicorp/tap
+    brew install hashicorp/tap/terraform
+    ```
+
+**Local setup**
+
+- Write a Terraform file that connect to AWS account and I will create VPC and subnet in my AWS Account
+
+- Step 1 : Create Project Folder 
 
 
 
