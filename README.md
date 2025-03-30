@@ -131,6 +131,39 @@
  
   <img width="558" alt="Screenshot 2025-03-30 at 10 54 41" src="https://github.com/user-attachments/assets/b410e6bc-dcea-42e7-9d83-66750a0e85b1" />
 
+### Terraform commands for different Stages 
+
+**How do I make Terraform take action?**
+
+- Terraform have commands I can execute to go through different stages
+
+- `refesh`: Terrform will query the Infrastructure Provider (like AWS) to get up to date State . So Terraform will now know what is the current State of the Infrastructure .
+
+- `plan`: taking current state and my configuration file as input and decide base on the difference what need to be done .
+
+    - So What Terrform needs to do in order to achieve that desired state that I defined in a Terraform configuration file. If it is an initial setup it figures out all the steps to create the desired setup . If it is an update, it compare the existing setup with a new desired state and figures out what changes and adjustments need to be made in which order to create the new desired state like add new Servers, add new Permission etc...
+ 
+    - This is where the CORE kind of constructs the plan logically or what need to be done
+ 
+- `apply` : Execute the plan (Where the actual execution happen) .
+
+    - So `plan` command like a reivew what will happen . If I execute `apply`, Terraform in the background will do the `refresh` get the up to date State then create the plan and then apply it
+ 
+- `destroy` : Destroy the whole set up removing element one by one in the right order and cleaning up all the Resources that were created . Basically reverting everyting have been created
+
+    - Destroy like `apply` it also check, will also check what is currently running and then create a plan of what needs to be removed, in which order .  
+
+    - And it could be used let's say I create an environment for an important demo day and I didn't want to interfere with the existing environments . Once the demo is over I can destroy the whole setup
+
+#### Key take away 
+
+<img width="600" alt="Screenshot 2025-03-30 at 11 30 59" src="https://github.com/user-attachments/assets/72cf7a72-4e21-4e30-a01a-889ed90f4051" />
+
+- Terrform is a tool for creating and configuring infrastructure like virtual servers and so on . And the managing the Infrastructure and not for installing application on these provisioned servers .
+
+- Terraform is a universal Infrastructure as code tool . I can use 1 tool for all of those environment
+
+- Bcs it intergrate with many diffent platform , I have 1 tools to intergrate all those different technologies and their API . So I don't need to learn a API of each tool to talk to them 
 
 
 
