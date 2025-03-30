@@ -180,7 +180,61 @@
 
 - Write a Terraform file that connect to AWS account and I will create VPC and subnet in my AWS Account
 
-- Step 1 : Create Project Folder 
+- Step 1 : Create Project Folder
+
+- Step 2 : Create file for terrform `main.tf`
+
+- Step 3 : Create Terraform plugin for VS Code
+
+## Providers in Terraform 
+
+### Introduction 
+
+- In Terraform whenever I want to connect to a technologies and start using its API to create resoruces inside, to configure it (Interact with AWS, Jenkins ...) . I need a Provider
+
+- Provider is a program know how to talk to specific technology . This Provider translate my Terraform configuration to something that AWS API understand so it can talk to AWS for me .
+
+#### Partner Provider 
+
+- These are thrid party technology partners that have created these providers and also actively maintain them .
+
+#### Community Provider 
+
+- Bassically created by community members . This could ne team of developers and individual developers that publish their providers to terraform registry for others to use them as well
+
+!!! NOTE : Terrform is really well documented . Whenever I looking for an example to create, to orchestrate or automate some technology with Terraform . I can look up in the Documentation 
+
+### Install and Connect to Provider 
+
+- Step 1 : I will configure Proivder In /Terraform/main.tf
+
+-  Terrform being an infrastructure as code tool, basically will be used and its files will be checked in into a code repository
+
+-  Never hard code credentiasl directly in the configuration file 
+
+- Step 2 :
+
+  ```
+  provider "aws" {
+  region = "us-west-1"
+  access_key = ""
+  secret_key = ""
+  }
+  ```
+
+  - This is telling Terraform in order to be able to connect to my AWS account it will need those Credentials, and this is a Region that I am working in .
+ 
+  - Those value I can find in Terrform AWS Docs
+ 
+ -  So Provider is basically a program that know how to talk to AWS, and when we install Terraform it doesn't come with this code automatically (Provider are not included in Terrform download) . Bcs Terraform come with a lot of Providers, it will waste of Resoruces .
+
+ -  Instead it is actuall modular. As a Terraform user decide what provider I want to work on and only install those . That mean whenever I define a Provider I need to install it
+
+- **Good Practice** : is to provide globally which Provider Terraform project use, as well as define the version number for each used provider in the Configuration file . This is not required but good practice to define it 
+ 
+<img width="600" alt="Screenshot 2025-03-30 at 12 46 29" src="https://github.com/user-attachments/assets/a3189962-17f9-4905-9970-37b733ccb62e" />
+
+- In Documation If I click the Use Provider button I will give me a actual code with a specific version of that Provider (Alway latest version)
 
 
 
