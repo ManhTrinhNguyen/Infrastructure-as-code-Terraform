@@ -226,15 +226,28 @@
  
   - Those value I can find in Terrform AWS Docs
  
- -  So Provider is basically a program that know how to talk to AWS, and when we install Terraform it doesn't come with this code automatically (Provider are not included in Terrform download) . Bcs Terraform come with a lot of Providers, it will waste of Resoruces .
+   -  So Provider is basically a program that know how to talk to AWS, and when we install Terraform it doesn't come with this code automatically (Provider are not included in Terrform download) . Bcs Terraform come with a lot of Providers, it will waste of Resoruces .
 
- -  Instead it is actuall modular. As a Terraform user decide what provider I want to work on and only install those . That mean whenever I define a Provider I need to install it
+   -  Instead it is actuall modular. As a Terraform user decide what provider I want to work on and only install those . That mean whenever I define a Provider I need to install it
 
-- **Good Practice** : is to provide globally which Provider Terraform project use, as well as define the version number for each used provider in the Configuration file . This is not required but good practice to define it 
- 
-<img width="600" alt="Screenshot 2025-03-30 at 12 46 29" src="https://github.com/user-attachments/assets/a3189962-17f9-4905-9970-37b733ccb62e" />
+  - **Good Practice** : is to provide globally which Provider Terraform project use, as well as define the version number for each used provider in the Configuration file . This is not required but good practice to define it 
+    
+    ```
+    terraform {
+      required_providers {
+        aws = {
+          source = "hashicorp/aws"
+          version = "5.93.0"
+        }
+      }
+    }
+    ```
 
-- In Documation If I click the Use Provider button I will give me a actual code with a specific version of that Provider (Alway latest version)
+  - In Documation If I click the Use Provider button I will give me a actual code with a specific version of that Provider (Alway latest version)
+  
+  - If I have multiple Provider I can list it in required_providers block with their specific version
+
+- Step 3 : Create a Separate File 
 
 
 
