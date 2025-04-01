@@ -289,7 +289,9 @@
 
 - Now Through AWS Provider I can now have access to every single service in AWS and the Resources of those Services 
 
-## Resoruces and Data Source
+## Resources and Data Source
+
+- `resource` and `data` is 2 type of Component that Provider give us 
 
 #### Resources 
 
@@ -320,6 +322,8 @@
    
     - I can define which AZ Subnet will be created in . If I leave it as a default it will take a Random one
    
+    - Those attribute name I can look up in the Docs (https://registry.terraform.io/providers/hashicorp/aws/latest/docs) .
+   
   - My entire code in this section :
  
   ```
@@ -338,14 +342,87 @@
     cidr_block = "10.0.10.0/24"
     availability_zone = "us-west-1"
   }
-  ``` 
+  ```
+
+#### Terraform Apply 
+
+- `terraform apply` that will take whatever I defined in the Terrform file I create above and then it will apply that configuration  
+
+- After `terraform apply` executed . It will wating for my Input , I need to confirm the action that Terraform is going to take
+
+- In the Terminal Terraform will show me what Terraform plan to do in order to give me a Desire State
+
+#### Data Sources
+
+- What if I want to create a Subnet within an existing VPC ? So I would need an ID of a existing VPC 1 way to do that is going to my AWS UI and grab my VPC ID but it is not efficent
+
+- So for that I can query that Infomation from AWS using Provider . And for that another the Component that Provider give us in addition to `resource` is `data`
+
+- `data` let me query a existing resources and component in AWS while `resource` let me create new resources .
+
+- The result of query is exported under my given name 
+
+- `data "aws_vpc" "existing_vpc" {}` As a Parameter, we are passing in a search criteria or filter cirteria. I basically want to tell AWS, give me a VPC that matches this following criteria so I will pass the Parameters that will tell Terraform which VPC I want to get here as a Result
+
+- I have a bunch of Parameter in the Docs .
+
+  - I can tell Terraform give me an AWS VPC that has this specific `cidr_block`,
+  
+  - or `default` VPC
+
+  - or give me VPC with specific id `id`
+
+  - or VPC that has specific key-value pair define `tag`
+
+  - or I have filter attribute here that let me define some more custom criteria to fetch the VPC
+ 
+  - And this apply to all resources whenever I am defining data of provider I can fetch some information, some resources using `data`
+ 
+- So let's say I want to get default VPC and then create a Subnet in that existing VPC . The I reference `data` (The result of this query) is . `data.<provier>.<name-of-the-data>` and it will give me a Object and I just want the ID `data.<provier>.<name-of-the-data>.id`
+
+  - The different is if I want `data` result I need to put data at first . Terraform will know this is from `data` not from `resource` .
+ 
+  - I am creating the subnet in a default VPC so I need to provide a subset of IP address from the default VPC cidr block . If have some subnet that already exist in default VPC the new Subnet have to have a different set of IP address . Bcs Each Subnet inside a VPC has to have different set of IP Address
+
+```
+data "aws_vpc" "existing_vpc" {
+  default = true
+}
+
+resource "aws_subnet" "dev-subnet-2" {
+  vpc_id = data.aws_vpc.existing_vpc
+  cidr_block = "172.31.0.0/24"
+  availability_zone = "us-west-1"
+}
+```
+
+- Now I have dev-subnet-2 ready . I can `terraform apply` . Now Terrform will calculate (I can see in the Terminal) the difference and the actions they need to take in order to fulfill our desired State
+
+#### Recap 
+
+- One way to describe Provider and Resource and Data that similar to Programing Language
+
+  - Provider defination is like Importing the Library that has set of code and function
+ 
+  - Defining `resource` and `data` is like calling a function from that library I just imported by passing various parameter
+ 
+  - `resource` is function that create something
+ 
+  - `data` is function that return something that already exist
+ 
+- And the user credentials that I define at the beginning Access key , Access Secret key . That user has to has certain permission in order to create things (Resources) in AWS or to Query (data) in AWS
+
+- What happen if I execute `terraform apply` again (Nothing change in the Config file) . Terrform will checked all the resources and Terraform decide no changes that need to be made . And the reason is Terraform language is declarative
+
+  -  Basically I need to declacre what the end result I want to be . I am not telling Terraform what to do . When I use `terraform apply` Terraform need to figure out the current State in the AWS account and Desired state .
+ 
+    - current State : Do I have already have one subnet with this name and this configuration another subner with this name this configuration . If yes Terraform know there is nothing to do . If Terrform can not find the subnet in AWS account or this VPC then Terraform knows it has to create one
+ 
+  - Terraform have a lot of advangtage :
+ 
+    - Idem potency : mean whenever I execute or apply the same exact configuration 100 times I alway get the same result
    
-    - Those attribute name I can look up in the Docs (https://registry.terraform.io/providers/hashicorp/aws/latest/docs) .
-
-
-
-
-
+    - And as a user I don't have to remember and know what the current State is and define what changes need to be made to that State . I only have to define what my end desired state should be . How many Subnet I want . Which Subnet I want .... and Terrform make a nessesary changed to get me to Desired Outcome 
 
 
 
