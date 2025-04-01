@@ -486,7 +486,16 @@ resource "aws_subnet" "dev-subnet-2" {
   - Option 2: Using Terraform command `terraform destroy -target <resource-type>.<resource-name>` . 
 
   - Alway use Options 1 bcs if I use Options 2 I end up with configuration file that doesn't acutally correspond to current state
-  - 
+
+## Terraform commands 
+
+- Let's say I have a configuration file and I want to check difference between current and desired state, and I don't know what current state is bcs there is multiple people working on the project and I just to see the different and also I don't want to do `terrform apply` . For that I can use `terrform plan`
+
+- `terraform plan` is like a preview same as what Terraform apply command give me but without acutal apply it
+
+- If I am executing `terraform apply` command and I don't want always confirm , I can pass in `terraform apply -auto-approve`
+
+- What if i want to completely destroy my Infrastructure . I want to clean up everything I create in the configuration file : `terraform destroy`  . This command will destroy all the resource in the correct order one by one
 
 
 
