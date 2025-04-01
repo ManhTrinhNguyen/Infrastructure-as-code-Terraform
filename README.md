@@ -305,7 +305,9 @@
  
     - For example in VPC there is a parameter I need to pass in is `cidr_block = "10.0.0.0/16"` basically I define an IP address range that will be assign to VPC, all the component EC2 Instances or whatever that get created inside that VPC will get an IP address from this IP address range (This is a Private IP Address)
    
-    - Those attribute name I can look up in the Docs (https://registry.terraform.io/providers/hashicorp/aws/latest/docs) . 
+    - I want to create a Subnet in VPC so I create another resource . `resource "aws_subnet" "dev-subnet-1" { vpc_id = }`. Whenever create Subnet I need to tell Terraform in which VPC the Subnet should be created 
+   
+    - Those attribute name I can look up in the Docs (https://registry.terraform.io/providers/hashicorp/aws/latest/docs) .
 
 
 
