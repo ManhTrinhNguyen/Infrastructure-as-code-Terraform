@@ -305,7 +305,40 @@
  
     - For example in VPC there is a parameter I need to pass in is `cidr_block = "10.0.0.0/16"` basically I define an IP address range that will be assign to VPC, all the component EC2 Instances or whatever that get created inside that VPC will get an IP address from this IP address range (This is a Private IP Address)
    
-    - I want to create a Subnet in VPC so I create another resource . `resource "aws_subnet" "dev-subnet-1" { vpc_id = }`. Whenever create Subnet I need to tell Terraform in which VPC the Subnet should be created 
+    - I want to create a Subnet in VPC so I create another resource . Whenever create Subnet I need to tell Terraform in which VPC the Subnet should be created .
+
+      - !!! NOTE : Whenever I create a resource for another resource that doesn't exist yet . In Terraform I can reference the Resources that I have define in the same Context .
+     
+      - For example to get vpc_id in VPC resources I can get a VPC resources Object `vpc_id = aws_vpc.development-vpc` and then get the id from that object `vpc_id = aws_vpc.development-vpc.id` . That is how I can reference an vpc_id of VPC that I have not create yet .
+   
+      ```
+      resource "aws_subnet" "dev-subnet-1" {
+        vpc_id = aws_vpc.development-vpc.id
+      }
+      ```
+    - Define cidr block . VPC has Range of Cidr block and Subnet will get a Sub Range of this whole VPC IP address .
+   
+    - I can define which AZ Subnet will be created in . If I leave it as a default it will take a Random one
+   
+  - My entire code in this section :
+ 
+  ```
+  provider "aws" {
+  region = "us-west-1"
+  access_key = ""
+  secret_key = ""
+  }
+
+  resource "aws_vpc" "development-vpc" {
+    cidr_block = "10.0.0.0/16"
+  }
+  
+  resource "aws_subnet" "dev-subnet-1" {
+    vpc_id = aws_vpc.development-vpc.id
+    cidr_block = "10.0.10.0/24"
+    availability_zone = "us-west-1"
+  }
+  ``` 
    
     - Those attribute name I can look up in the Docs (https://registry.terraform.io/providers/hashicorp/aws/latest/docs) .
 
