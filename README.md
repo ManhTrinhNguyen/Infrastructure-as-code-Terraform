@@ -424,11 +424,69 @@ resource "aws_subnet" "dev-subnet-2" {
    
     - And as a user I don't have to remember and know what the current State is and define what changes need to be made to that State . I only have to define what my end desired state should be . How many Subnet I want . Which Subnet I want .... and Terrform make a nessesary changed to get me to Desired Outcome 
 
+## Change/Destroy a resource 
 
+#### Changing Resources 
 
+- I will add a Name to my `resource` .
 
+- To give Name to the Resource . I can do that by using `tags` parameter. Tags are key-value pair in AWS and I can edit any resource in AWS and I can have arbitrary key-value pair
 
+```
+resource "aws_vpc" "development-vpc" {
+  cidr_block = "10.0.0.0/16"
+  tags = {
+    Name: "development"
+    vpc_env = "dev" # I can give any name I want
+  }
+}
 
+resource "aws_subnet" "dev-subnet-1" {
+  vpc_id = aws_vpc.development-vpc.id
+  cidr_block = "10.0.10.0/24"
+  availability_zone = "us-west-1"
+  tags = {
+    Name: subnet-1-dev
+  }
+}
+
+data "aws_vpc" "existing_vpc" {
+  default = true
+}
+
+resource "aws_subnet" "dev-subnet-2" {
+  vpc_id = data.aws_vpc.existing_vpc
+  cidr_block = "172.31.48.0/20"
+  availability_zone = "us-west-1"
+  tags = {
+    Name: subnet-2-default 
+  }
+}
+```
+- Then I will apply it : `terraform apply`
+
+  - In terminal I can see `~` and `+` and `-` icons
+ 
+    - `~` : For a change
+   
+    - `+` : For created
+   
+    - `-` : For removing
+   
+  - In terminal I can see the change and also see that I have a number hidden attributes that will stay unchanged .
+ 
+  - If I want to remove something I just need to take it out from `resource`
+ 
+####  Removing/Destroying Resources 
+
+- Let's say I don't want the dev-subnet-2 anymore . There is 2 way that removing the `resource` that I don't need it anymore
+
+  - Option 1 : Remove the `resource` from Terraform file . Again Terraform will compare a current State which is I have a Subnet in default VPC and the Desired State which is no Subnet Resources specified for default VPC . 
+ 
+  - Option 2: Using Terraform command `terraform destroy -target <resource-type>.<resource-name>` . 
+
+  - Alway use Options 1 bcs if I use Options 2 I end up with configuration file that doesn't acutally correspond to current state
+  - 
 
 
 
