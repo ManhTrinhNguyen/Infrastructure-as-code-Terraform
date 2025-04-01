@@ -289,6 +289,44 @@
 
 - Now Through AWS Provider I can now have access to every single service in AWS and the Resources of those Services 
 
+## Resoruces and Data Source
+
+#### Resources 
+
+- The way to create new Resource in AWS is using `resource` . Every resource that I have access to through this Provider has specific name
+
+  - Syntax for create resource : `resource "<provider>_<resource type>" "<variable_name>" {}`
+    
+  - For example I want to create VPC in AWS I can use : `resource "aws_vpc"`
+ 
+  - variable name is I can call whatever I want
+ 
+  - Inside the block in can pass parameter . Each resource block describes one or more infrastructure object
+ 
+    - For example in VPC there is a parameter I need to pass in is `cidr_block = "10.0.0.0/16"` basically I define an IP address range that will be assign to VPC, all the component EC2 Instances or whatever that get created inside that VPC will get an IP address from this IP address range (This is a Private IP Address)
+   
+    - Those attribute name I can look up in the Docs (https://registry.terraform.io/providers/hashicorp/aws/latest/docs) . 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
  
