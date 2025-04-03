@@ -857,11 +857,87 @@ environment = "deployment" ## Base on which environment I am applying to, I woul
 
     - `terraform.lock.hcl` file should be check in bcs this is a list of Proivders that I have installed locally with specific version 
 
+## Automate AWS Infrastructure 
 
+#### Demo Overview 
 
+- I will deploy EC2 Instances on AWS and I will run a simple Docker Container on it .
 
+- However before I create that Instance I will Provision AWS Infrastructure for it
 
+- To Provision AWS Infrastructure
 
+  1. I need create custom VPC
+   
+  2. Inside VPC I will create Subnet in one of the Availability Zone . I can create multiple Subnet in each AZ 
+ 
+  3. Connect this VPC to Internet using Internet Gateway on AWS . Allow traffic to and from VPC with Internet
+ 
+  4. And then in this Configure VPC I will deploy an EC2 Instance
+ 
+  5. Deploy Nginx Docker Container
+ 
+  6. Create Securtiy Group (Firewall) in order to access the nginx server running on the EC2
+ 
+  7. Also I want to SSH to my Server . Open ports for that SSH as well
+ 
+- When I have multi server deployment, basically I just have multi server deployment basically I just have to create the whole network and infrastructure configuration once
+
+- **Best Practice with Terraform** : That I want to create the whole Infrastructure from sratch I want to deploy everything that I need, All the Infrastructure, All the Server inside and it I don't need it anymore later I can just remove it without touching the defaults created by AWS . That mean I want to create my own VPC and I want to work with my own VPC and leave the default one basically as is
+
+#### VPC and Subnet 
+
+- Create `variable` and put it into a vpc `resource` and subnet `resource`
+
+- Also Change the name tag . For every component that I am creating I will give it a prefix of the environment that it is going to be deployed in . So on the development server all components will have dev prefix . On production will have prod prefix and so on . So I will create env `variable env_prefix {}`
+
+    - To use `variable` inside the String . `Name: "${var.env_prefix}-vpc"` 
+
+```
+main.tf
+
+provider "aws" {
+  region = "us-west-1"
+}
+
+variable vpc_cidr_block{}
+variable subnet_cidr_block {}
+variable availability_zone {}
+variable env_prefix {} 
+
+resource "aws_vpc" "myapp-vpc" {
+  cidr_block = var.vpc_cidr_block
+  tags = {
+    Name: "${var.env_prefix}-vpc"
+  }
+}
+
+resource "aws_subnet" "myapp-subnet-1" {
+  vpc_id = aws_vpc.development-vpc.id
+  cidr_block = var.subnet_cidr_block
+  availability_zone = var.availability_zone
+  tags = {
+    Name: "${var.env_prefix}-subnet"
+  }
+}
+```
+
+- Now I will set Variable in `terraform.tfvars`
+
+```
+vpc_cidr_block = "10.0.0.0/16"
+subnet_cidr_block = "10.0.10.0/24"
+availability_zone = "us-west-1b"
+env_prefix = 'dev'
+```
+
+- Everything is ready to create VPC and Subset
+
+    - I will use `terrform plan` : To show me what Terraform will be execute
+ 
+    - Then I can apply it `terraform apply --auto-approve`
+
+#### Route Table And Internet Gateway 
 
 
 
