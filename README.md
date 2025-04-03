@@ -569,10 +569,75 @@ output "dev-subnet-id" {
 
 ## Variables 
 
--
+- I can use `variable` in the configuration file
 
+- For example I want value of CIDR Block not to be hardcode but I want to pass it as a parameter, in this case I can define a `variable` for CIDR block and then reference that variable and its values
 
+- It could be very handy if I have value that used multiple times for different `resource` . Or If I want to reuse the configuration files of Terraform for multiple different environments and I want to passin diffrent
+parameter for different use case
 
+- Input valirables are like function arguments .
+
+- I will use variable for CIDR block subnet by using `variable "subnet-cidr-block" {}` I can name variable whatever I want .
+
+  - Inside the block I can define several attributes
+
+  ```
+  variable "subnet-cidr-block" {
+    description = "subnet cidr block"
+  }
+  ```
+
+  - And now I can use a Variable as a value `vpc_id = aws_vpc.development-vpc.id`
+ 
+  ```
+  resource "aws_subnet" "dev-subnet-1" {
+  vpc_id = aws_vpc.development-vpc.id
+  cidr_block = var.subnet-cidr-block
+  availability_zone = "us-west-1"
+  }
+  ```
+
+#### 3 way to pass value to the input variable 
+
+- First way : When I do `terraform apply` I get a prompt for entering for entering the CIDR Block
+
+- Second way: Using command line Argument `terraform apply -var "subnet-cidr-block=10.0.30.0/24"`
+
+- Third way : Defining variable file and assigning all the variable to my terraform configuration inside that file . And that file in Terraform acutally has its own naming convention and file ending `terraform.tfvars`
+
+  - Inside this file : I can define key-value pairs for my Variables . `subnet_cidr-block = "10.0.40.0/24"` and save it . and then I apply it `terraform apply` Terraform will find that Variable file and read the variable value and set it
+ 
+  - This is a best pratice . Should use most of the time .
+ 
+  - For example
+
+  ```
+  main.tf
+
+  variable "vpc_cidr_block" {
+    description = "vpc cidr block"
+  }
+  variable "subnet_cidr_block" {
+    description = "subnet cidr block"
+  }
+  resource "aws_vpc" "development-vpc" {
+    cidr_block = var.vpc_cidr_block
+  }
+  
+  resource "aws_subnet" "dev-subnet-1" {
+    vpc_id = aws_vpc.development-vpc.id
+    cidr_block = var.subnet_cidr_block
+    availability_zone = "us-west-1"
+  }
+  ```
+
+  ```
+  terraform.tfvars
+
+  subnet_cidr_block = "10.0.40.0/24"
+  vpc_cidr_block = "10.0.0.0/16"
+  ```
 
 
 
