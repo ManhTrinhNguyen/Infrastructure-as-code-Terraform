@@ -534,6 +534,56 @@ resource "aws_subnet" "dev-subnet-2" {
 
    - Most of the time shouldn't update the State directly . Should be done by Terraform itself 
  
+## Output Values
+
+- Allow me to output a set of Attribute and their values of the resources I just created
+
+- As I can see those generated values by `resources` once I create `resource`, either in the Terraform State file `terraform.tfstate` or using `terraform state` show subcommand for specific resources
+
+- Another way to get those genrated values is using ouput values .
+
+- Output values are like function return values
+
+- Inside the configuration I can define what value Terraform want to output at the end of applying my Configuration from 1 of `resource`
+
+-  For example I want to output the ids of every `resource` that I am creating (VPC and Subnet) .
+
+  - First I will `terraform destroy` both of them . Then I will recreate them an output id of each resources
+
+  - I will use `output "variable_name" {}` . And In the block I want to tell Terraform which Atrributes value I want it to output . `output "variable_name" {value = aws_vpc.development-vpc.id}`. If I want to check which attribute are available for each `resource` I can use `terraform plan` which will show me the preview plan action including the attributes either I set or AWS will set for that `resource`
+
+- Each attribute I have to define its own output
+  
+```
+output "dev-vpc-id" {
+  value = aws_vpc.development-vpc.id
+} 
+
+output "dev-subnet-id" {
+  value = aws_subnet.dev-subnet-1.id
+}
+```
+
+- This is handy if I am creating bunch of `resource` and I want to have ids of all of them Or If I create Server Instances and I want their public IP Address I can output them so I don't have to do `terraform state show`
+
+
+## Variables 
+
+-
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
