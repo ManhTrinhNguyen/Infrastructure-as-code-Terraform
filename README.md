@@ -639,7 +639,115 @@ parameter for different use case
   vpc_cidr_block = "10.0.0.0/16"
   ```
 
+#### Use case for Input Variables 
 
+- If I have configuration file or multiple configuration files that create a whole infrastructure and If I want to replicate the same exact infrastructure as development environment, a staging environment and production environment I can have the configuration files for all three environment and then change the parameters base on the Environment I am in.
+
+- For example :
+
+```
+main.tf
+
+variable "environment" {
+  description = "deployment environment"
+}
+
+resource "aws_vpc" "development-vpc" {
+  cidr_block = var.vpc_cidr_block
+  tags = {
+    Name: var.environment
+  }
+}
+```
+
+```
+terraform.tfvars
+
+environment = "deployment" ## Base on which environment I am applying to, I would basically subtitue the value for that envinronment  
+```
+
+- In this case I would have a variables file for Dev, Production and Staging
+
+  - `terraform-dev.tfvars`: All the dev environment would set here 
+ 
+  - `terraform-pro.tfvars` : All the production environment would set here
+ 
+  - `terraform-staging.tfvars` : All the staging environment sould set here
+ 
+- If I change the name of these variables file from `terraform.tfvars` to `terraform-dev.tfvars` or else I have to pass the file name as a parameter when I apply . `terrafrom apply -var-file terraform-dev.tfvars`
+
+#### Default Value 
+
+- I can assign variables default values . In is `variable "" {}` block I can set default
+
+  -  Default variable will kick in if Terraform can not find a value defined for that Variable . Either in the Variable file or as a command line parameter
+ 
+  ```
+  variable "vpc_cidr_block" {
+    description = "vpc cidr block"
+    default = "10.0.10.0/24"
+  }
+  ```
+
+  -  This is handy , if I have the configuration that should work as a default setup and then I allow different users for different use cases to pass in parameters to override the default . Example development configuration could be the default and then I would have variable files for other environments . Or could be Production and then I have development and staging variable file
+ 
+#### Type Constraints 
+
+- I can set the Variable Type. Could be string, number, bool, 
+
+  ```
+  variable "vpc_cidr_block" {
+    description = "vpc cidr block"
+    default = "10.0.10.0/24"
+    type = string
+  }
+  ```
+
+- I use it in the case If I have some value that has to be of a certain type. And I want the users of my configuration files that basically pass in value through the Variable file .
+
+- Another example I want variable to be a list that contain multiple cidr blocks
+
+  ```
+  main.tf
+  
+  variable "cidr_block" {
+    description = "vpc cidr block for vpc and subnet"
+    default = "10.0.10.0/24"
+    type = list(string)
+  }
+  ```
+
+  ```
+  terraform-dev.tf
+
+  cidr_block = ["10.0.0.0/16", "10.0.10.0/24"]
+  ```
+
+  - Now I have the variable that hold a List so I have to change how I reference that variable
+ 
+  ```
+  main.tf
+
+  variable "cidr_block" {
+    description = "vpc cidr block for vpc and subnet"
+    default = "10.0.10.0/24"
+    type = list(string)
+  }
+
+  resource "aws_vpc" "development-vpc" {
+    cidr_block = var.cidr_block[0]
+  }
+
+  resource "aws_subnet" "dev-subnet-1" {
+    vpc_id = aws_vpc.development-vpc.id
+    cidr_block = var.cidr_block[1]
+    availability_zone = "us-west-1"
+  }
+  ```
+
+- Another example that I can also have Object as variable 
+
+  
 
 
 
