@@ -745,8 +745,91 @@ environment = "deployment" ## Base on which environment I am applying to, I woul
   }
   ```
 
-- Another example that I can also have Object as variable 
+- Another example that I can also have Object as variable
 
+  ```
+  cidr_blocks = [
+    {cidr_block = "10.0.0.0/16", name = "dev-vpc"},
+    {cidr_block = "10.0.10.0/24", name = "dev-subnet"}
+  ]
+  ```
+
+  - I can validate a list of object using a list of object type
+ 
+  ```
+  main.tf
+
+  variable "cidr_block" {
+    description = "vpc cidr block for vpc and subnet"
+    default = "10.0.10.0/24"
+    type = list(object{
+      cidr_block = string
+      name = string
+    })
+  }
+
+  resource "aws_vpc" "development-vpc" {
+    cidr_block = var.cidr_block[0].cidr_block
+    tags = {
+      Name: var.cidr.blocks[0].name
+    }
+  }
+
+  resource "aws_subnet" "dev-subnet-1" {
+    vpc_id = aws_vpc.development-vpc.id
+    cidr_block = var.cidr_block[1]..cidr_block
+    availability_zone = "us-west-1"
+    tags = {
+      Name: var.cidr.blocks[1].name
+    }
+  }
+  ```
+
+  - Use case for this is if I create configuration files and the I let other team members maybe use those configuration files by passing in different parameters as variables . I may want to restrict or give them guidelines to what values they can pass in as parameters 
+
+
+## Environment Variables in Terraform 
+
+- Never Hardcode credentials . There is 2 ways to set Credentiasl so Terraform can pick it up
+
+#### Setting as ENV
+
+- In terminal . `export AWS_SECRET_ACCESS_KEY=""`  . This is the same exect ENV that I need to set for using AWS command line interface . This is the same for AWS itself . Then I do `terraform apply` Terraform will able to connect to AWS eventhough I don't have credentials in the Configuration ile for provider block
+
+- However If I switch to another terminal those ENV will not set bcs they only accessible in certain context that set them up
+
+- If I want to have globally configured AWS credentials then I need to configure them in the `~/.aws/credentials`, this is a default location for storing AWS credentials on any Operating System, then Terraform can also pick it up .
+  
+    - As long as I have AWS CLI on my machine I can set the credentiasl using AWS configure command `aws configure`. 
+
+    - When I do `aws configure` and enter all these values . The `~/.aws/credentials` will automatically get generated with credentials and config files inside . And that will be bacsically my global AWS user credential configuration
+ 
+    - Now if I use `terraform apply -var-file terraform-dev.tfvars` Terraform should be able to authenticate with AWS account
+ 
+    - I can also config Region using ENV . In my local machine I have the default Region set already . So in my I can leave `provider "aws" {}` empty
+ 
+#### Set Variable using TF environment variable . 
+
+- What if I want to define my own custome ENV .
+
+- Terraform let me set global ENV using `TF_VAR_<Any-Name>` . Example : `export TF_VAR_avil_zone`="us-west-1".
+
+  - After that
+    
+  ```
+  main.tf
+
+  variable avil_zone{}
+  
+  resource "aws_subnet" "dev-subnet-1" {
+    vpc_id = aws_vpc.development-vpc.id
+    cidr_block = var.cidr_block[1]..cidr_block
+    availability_zone = var.avil_zone
+    tags = {
+      Name: var.cidr.blocks[1].name
+    }
+  }
+   ```
   
 
 
