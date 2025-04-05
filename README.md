@@ -1039,8 +1039,50 @@ resource "aws_route_table_association" "a-rtb-subnet" {
 
 #### Use Main Route Table 
 
-- 
+- What if I used the default route table instead of the new one
 
+- To use the default route table
+
+- The way I can configure the default Route Table is using Resource called AWS default routes table .
+
+- To get the `default_route_table_id` from the VPC Object I will use : `terraform state show aws_vpc.myapp-vpc` . I can see all the attributes this `resource` have (However I need to have that resource exsiting in my AWS account, otherwise I won't be able to get any list) . So now I can see the `default_route_table_id` . 
+  
+```
+## Remove aws_route_table_association resource
+## Remove aws_route_table resource
+## I still keep the Internet Gateway
+
+resource "aws_internet_gateway" "myapp-igw" {
+  vpc_id = aws_vpc.myapp-vpc.id
+
+  tags = {
+    Name: "${var.env_prefix}-rtb"
+  }
+}
+
+resource "aws_default_route_table" "main-rtb" {
+  ## I don't need a vpc_id bcs I am referencing the existing Route Table .
+
+  ## Instead I need default_route_table_id .
+  default_route_table_id = aws_vpc.myapp.vpc.default_route_table_id
+  
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.myapp-igw.id
+  }
+
+  tags = {
+    Name = "${var.env_prefix}-main-rtb"
+  }
+}
+```
+
+- After execute `terraform apply` . The previous route table got removed and the new one got created and the new one got created in its place, which is also a main one .
+
+- In that route section I see the defailt local routing and gateway configuration .
+
+- And In the Subnet Association I have not defined any explicit subnet association for this route table . However subnets in that VPC all the subnets that are not explicitly associated are automatically assigned to main route table . So I don't have to do 
+ explicitly associated agian bcs It happen by default  
 
 
 
