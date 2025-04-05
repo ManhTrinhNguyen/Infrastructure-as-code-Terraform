@@ -1143,7 +1143,51 @@ resource "aws_security_group" "myapp-sg" {
     Name : "${var.env_prefix}-sg"
   }
 }
-``` 
+```
+
+- After execute `terraform apply --auto-approval` . I can check in the Security Group
+
+  - I have the default security group of the VPC that I created . Bcs AWS create some default component for VPC and security group is one of them . By default Security Group is blocked all the port are closed no traffic is allowed in
+ 
+  - And I also have the Security Group I just created
+ 
+  - !!! Note : I can resue the default SG and I don't have to create a new one
+
+#### Use Default Security Group 
+
+```
+variable var.my-ip {}
+
+resource "aws_default_security_group" "myapp-sg" {
+  vpc_id = aws_vpc.myapp-vpc.id
+
+  ingress {
+    from_port = 22
+    to_port = 22
+    protocol = "TCP"
+    cidr_blocks = ["${var.my-ip}"] ## This is not a single IP address . This is a range of IP addresses  
+  }
+
+  ingress {
+    from_port = 8080
+    to_port = 8080
+    protocol = "TCP"
+    cidr_blocks = ["0.0.0.0/0"] ## This is not a single IP address . This is a range of IP addresses  
+  }
+
+  egress {
+    from_port = 0 # Not restric from and to any PORT 
+    to_port = 0
+    protocol = "-1" ## Any Protocol 
+    cidr_blocks = ["0.0.0.0/0"] ## This is not a single IP address . This is a range of IP addresses
+    prefix_list_id = [] # It for allowing access to VPC endpoints 
+  }
+
+  tags = {
+    Name : "${var.env_prefix}-default-sg"
+  }
+}
+```
 
 
 
