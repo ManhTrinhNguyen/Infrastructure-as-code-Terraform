@@ -1084,12 +1084,66 @@ resource "aws_default_route_table" "main-rtb" {
 - And In the Subnet Association I have not defined any explicit subnet association for this route table . However subnets in that VPC all the subnets that are not explicitly associated are automatically assigned to main route table . So I don't have to do 
  explicitly associated agian bcs It happen by default  
 
+#### Security Group 
 
+- When I deploy my virtual machine in the subnet, I want to be able to SSH into it at port 22 . As well as I want to accessing nginx web server that I deploy as a container, through the web browser so I want to open port 8080 so that I can access from the web browser
 
+- First I need `vpc_id` . So I have to associate the security Group with the VPC so that server inside that VPC can be associated with the security group and VPC ID 
 
+- Generally I have 2 type of rules :
 
+    - I have traffic come in inside the VPC (Incoming Traffic) . For example When I SSH into EC2 or Access from the browser. The Incomeing Traffic rule are configured by attribute call `ingress` . inside the Ingress block I have configuration for one firewall role and I have couple attribute inside Ingress block
+ 
+      - The resone we have 2 Ports `from_port` and `to_port` It is bcs I can acutally configure a Range . For example If I want to open Port from 0 to 1000 I can do `from_port = 0 && and to_port = 1000`
+      - `cidr_blocks` : Sources who is allowed or which IP addresses are allowed to access to the VPC
+     
+      - For SSH accessing the server on SSH should be secure and not everyone allow to do it
 
+      - If my IP address is dynamic (change alot) . I can configure it as a variable and access it or reference it from the variable value instead of hard coding . So I don't have to check the `terraform.tfvars` into the repository bcs this is the local variables file that I ignored . Bcs everyone can have their own copy of variable file and set their own IP address
+     
+  - Traffic outgoing call `egress` . The arrtribute for these are the same
+ 
+      - Example of Traffic leaving the VPC is .
+   
+          - Installation : When I install Docker or some other tools on my Server these binaries need to be fetched from the Internet
+          - Fetch Image From Docker Hub or somewhere else 
+        
+```
+## Continue from above section
 
+variable var.my-ip {}
+
+resource "aws_security_group" "myapp-sg" {
+  name = "myapp-sg"
+  vpc_id = aws_vpc.myapp-vpc.id
+
+  ingress {
+    from_port = 22
+    to_port = 22
+    protocol = "TCP"
+    cidr_blocks = ["${var.my-ip}"] ## This is not a single IP address . This is a range of IP addresses  
+  }
+
+  ingress {
+    from_port = 8080
+    to_port = 8080
+    protocol = "TCP"
+    cidr_blocks = ["0.0.0.0/0"] ## This is not a single IP address . This is a range of IP addresses  
+  }
+
+  egress {
+    from_port = 0 # Not restric from and to any PORT 
+    to_port = 0
+    protocol = "-1" ## Any Protocol 
+    cidr_blocks = ["0.0.0.0/0"] ## This is not a single IP address . This is a range of IP addresses
+    prefix_list_id = [] # It for allowing access to VPC endpoints 
+  }
+
+  tags = {
+    Name : "${var.env_prefix}-sg"
+  }
+}
+``` 
 
 
 
