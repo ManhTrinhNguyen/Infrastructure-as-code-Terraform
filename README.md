@@ -951,15 +951,103 @@ env_prefix = 'dev'
    
       - Destination `10.0.0.0/16` is a IP Address's range that I defined in `vpc_cidr_block`
    
+     - I have the IP Address Range inside that network
+ 
+     - I also have Network ACL . Firewall configureation for Subnet in that VPC .
+     
+          - Network ACL open by default . Security Group closed by default
+   
       - In our VPC I have a route table handles all the traffic inside VPC and I know it is a traffic inside VPC bcs IP address range matches my VPC's IP Address range
    
-      - Local Target mean this is handled within the VPC . Doesn't go outside in the internet and that mean my VPC isn't connect to internet 
+      - Local Target mean this is handled within the VPC . Doesn't go outside in the internet and that mean my VPC isn't connect to internet
+   
+- **Internet Gateway Target** : This mean this Route Table acutally handles or will handle all the traffic coming from the Internet and leaving the Internet 
 
-  - I have the IP Address Range inside that network
+    - Basically I need the Internet Gateway Target in my Custom VPC so I can connect my VPC to the Internet
+
+#### Create new Route Table 
+
+- I will create new Route table and create those 2 Rules .
+
+    - Local Target : Connect within VPC
  
-  - I also have Network ACL . Firewall configureation for Subnet in that VPC .
+    - Internet Gateway : Connect to the Internet
  
-      - Network ACL open by default . Security Group closed by default  
+- By default the entry for the VPC internal routing is configured automatically . So I just need to create the Internet Gateway route
+
+- I am creating the internet gateway in the VPC and then I am using that Internet gateway inside my Route Table to tell Route Table handle the request of the VPC to go to and come in from the Internet
+
+- Terraform knows in which order or in which sequence the components must be created . That mean even if I define in the wrong order, Terraform will figure out which resource need to create frist 
+  
+```
+main.tf
+
+## I have VPC and subnet VPC configure above
+
+resource "aws_route_table" "myapp-route-table" {
+  vpc_id = aws_vpc.myapp-vpc.id ## Define VPC that I want to create from
+
+  route {
+    cidr_block = "0.0.0.0/0" ## Any IP address can access to VPC
+    gateway_id = aws_internet_gateway.myapp-igw ## This is a Internet Gateway for my Route Table 
+  }
+
+  tags = {
+    Name: "${var.env_prefix}-rtb"
+  }
+}
+
+resource "aws_internet_gateway" "myapp-igw" {
+  vpc_id = aws_vpc.myapp-vpc.id
+
+  tags = {
+    Name: "${var.env_prefix}-rtb"
+  }
+}
+```
+
+- **Recap** : I have configured VPC and Subnet inside VPC . I am connecting VPC to Internet Gateway and then I am configureing a new Route Table that I am creating in the VPC to route all the Traffic to and from using the Internet Gateway
+
+- Think about the Route table as virtual router inside VPC and Internet Gateway as a virtual modem that connect me to the Internet
+
+!!! Best Practice : Create new components, instead of using default ones
+
+#### Subnet Association with Route Table 
+
+- If I click in Route Table Section . I have a tap called Subner Assoociations . This mean I have created a route table inside my VPC . However I need to associate subnets with the route table so that traffic within the subnet can also be handled by the route table.
+
+- By default when I do not associate subnets to a route table they are automatically assigned or associated to the main route table in that VPC where the Subnet is running 
+
+- The main Route Table is the one said Yes in the Main column 
+
+- Right now subnet is associated with the main route table that doesn't have the internet gateway . I will change that in Terraform
+
+```
+## Continue in the main configuration above
+
+main.tf
+
+resource "aws_route_table_association" "a-rtb-subnet" {
+  subnet_id = aws_subnet.mapp-subnet-1.id
+  route_table_id = aws_route_table.myapp-route-table.id
+}
+```
+
+- To execute Terraform file `terraform apply`
+
+- So my Subnet or all the reousrces including EC2 that I will deploy into my subnet, all these request will be handle by the Route Table I just created
+
+#### Use Main Route Table 
+
+- 
+
+
+
+
+
+
+
+
 
 
 
