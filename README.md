@@ -1428,11 +1428,60 @@ public_key_location = "/Users/nana/.ssh/id_rsa.pub"
  
     - So above is a `user_data` command that will run everytime the instance gets launched . I just need to configure the Terraform file, so that each time I change this user data file, The Instance actually get destroyed and re-created.
  
-    - If I check AWS_Provider docs and check for `aws_intance` I can see the `user_data` input filed has an optional flag `user_data_replace_on_change` . I want enable this flag, I want to ensure that my Instance is destroyed and recreated when I modify this `user_data` field . This way I know that my user data script is going to run each time on the clean, brand-new instance, which will ge me a consistent State 
+    - If I check AWS_Provider docs and check for `aws_intance` I can see the `user_data` input filed has an optional flag `user_data_replace_on_change` . I want enable this flag, I want to ensure that my Instance is destroyed and recreated when I modify this `user_data` field . This way I know that my user data script is going to run each time on the clean, brand-new instance, which will ge me a consistent State
+ 
 
+- Once I have `user_data` configured I can use `terraform apply`.
 
+- !!! NOTE : `user_data` will only executed once . However bcs I add `user_data_replace_on_change = true` now if the `user_data` script itself changes  this will force the recreation of the of the instance and re-execution of the user data script . But again this is only if something in the `user_data` script itself changes. If changes everything else like tags , key_name .... In this case it not going to force the recreation of the instance
 
+- In my example bcs I made a change related to the user data specificly by adding this attribute. When I ran `terraform apply` The instance will be re-created and `user_data` was executed again
 
+- And this time I added another output to show me the Public_ip so save me time to go to get public ip
+
+#### Extract to shell script 
+
+- Of course if I have longer and configuring a lot of different stuff I can also rerference it from a file .
+
+- I will use file location `user_data = file("entry-script.sh")`
+
+- In the same location I will create a `entry-script.sh` file
+
+```
+ #!/bin/bash
+sudo yum update -y && sudo yum install -y docker
+sudo systemctl start docker
+sudo usermod -aG docker ec2_user
+docker run -p 8080:80 nginx
+```
+
+#### Commit to own feature branch 
+
+- I can check all this code into separate feature branch and push it to remote repository .
+
+  - `git checkout -b feature/deploy-to-ec2-default-components`
+  - `git add .`
+  - `git commit -m "create new branch"`
+  - `git push`
+
+#### Configuring Infrastructures, not Servers 
+
+- I just created infrastructure . All using Terraform . 
+
+  - Configure networking
+
+  - Provision a server EC2
+
+- Then Once the Infrastructure are actually ready and it is time to deploy applications and install stuff on it. I acutally switch back to shell script
+
+- The point here is that Once server created . Once Infrastructure is there Terraform doesn't help further with installing Docker and configuring out server any further . It give a possibility to execute script by giving the attribute but I can't debug . If something go wrong I won't have a feedback or a message . I will have to SSH into it and I will have to see what happened why doesn't work ....
+
+- Where Terrafrom should be use and where Terraform will stop . So Terraform is a tool for creating, configuring and managin infrastructure . Once Server are Provisioned the Firewall rule are set etc . Deploy Application or configuring Server itself install packages or updating their version and so on should be done with another tool like Ansible, Chef, Puppet
+
+- Tool like Ansible coming to automate deploying the application 
+configureing server, installing/updating packages version and so on
+
+<img width="600" alt="Screenshot 2025-04-08 at 14 10 53" src="https://github.com/user-attachments/assets/9f7593e1-e9df-4cab-a799-4081d0aee673" />
 
 
 
