@@ -1304,16 +1304,78 @@ instance_type = "t2.micro"
 ```
 main.tf
 
+variable public_key_location {}
+
 resource "aws_key_pair" "ssh-key" {
   key_name = "server-key"
-  public_key = 
+  public_key = file(var.public_key_location)
 }
+
+resource "aws_instance" "myapp-server" {
+  ami = data.aws_ami.latest-amazon-linux-image.id
+  instance_type = var.instance_type
+
+  subnet_id = aws_subnet.myapp-subnet-1.id
+  vpc_security_group_ids = [aws_default_security_group.default_sg.id]
+  availability_zone = var.avil_zone
+
+  associate_public_ip_address = true
+
+  key_name = aws_pair.ssh-key.key_name
+
+  tags = {
+    Name: "${var.env_prefix}-server"
+  }
+}
+```
+
+```
+terraform.tfvars
+
+public_key_location = "/Users/nana/.ssh/id_rsa.pub"
 ```
 
 - `public_key` : I need a Public Key so AWS can create the Private key pair out of that Public key value that I provide
 
-- Where Do I get the Public key ? Locally I can create my own Private and Public key pair it by using `ssh-keygen` then I have files like this `.ssh/id_rsa.pub` and `.ssh/id_rsa` I can reuse it for other Provider 
+    - Where Do I get the Public key ? Locally I can create my own Private and Public key pair it by using `ssh-keygen` then I have files like this `.ssh/id_rsa.pub` and `.ssh/id_rsa` I can reuse it for other Provider
+    
+    - To use that public_key in Terraform I can extract that key into a `Variable` or I can use `File` location
+    
+      - `puclic_key = file("~/.ssh/irs.pub")` or I can set location as `variable` `public_key = file(var.my_public_key)` and then in `terraform.tfvars` I set the public_key_location variable `public_key_location = "~/.ssh/id_rsa.pub"` 
 
+  - Now I can reference this key pair in the AWS EC2 instances .
+
+  - Then Now I can apply it : `terraform apply --auto-approve`
+ 
+  - Then I can add another Output that print the Public IP of the Instance :
+ 
+  ```
+  output "ec2_public_ip" {
+    value = aws_instance.myapp-server.public_ip
+  }
+  ```
+
+  - Now Bcs I use the Public key from my local and I don't have the `.pem` file . I can take the `~/.ssh.id_rsa` private key to ssh to a Server `ssh -i ~/.ssh/id_rsa ec2-user@52.58.95.171` . Short cut `ssh ec2-user@52.58.95.171` I don't have to specify .
+ 
+#### Advandtage of Terraform 
+
+- When I am creating a lot of resources and you end up creating some of it and configuring some of that stuff there is high chance that I forget about these things when this time to clean up the resources . So when I delete everything using `terraform destroy` . I may actually forget to delete this stuff that I created manually or configured manually
+
+- Another case is If I want to replicate the environment  I want to create development environment and I want to use the same for Staging environment .
+
+- Repication is difficult with maunual configuration . I have to document the manual steps
+
+- Collaboration is more difficult
+
+- **Best Practice** : So there is a clear advantage of automating and basically writing all the code that possible inside the Terraform configuration file and not doing and configuring stuff manually 
+
+#### Run entrypoint script to start Docker container 
+
+-  Now I have EC2 server is running and I have Networking configured . However there is nothing running on that Server yet . No Docker install, No container Deployed
+
+-  I want to ssh to server, install docker, deploy container automatically . So i will create configuration for it too
+
+-  With Terraform there is a way to execute commands on a server on EC2 server, 
 
 
 
