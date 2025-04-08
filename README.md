@@ -1196,14 +1196,23 @@ resource "aws_default_security_group" "myapp-sg" {
 - Review : I have a VPC that has a Subnet inside . Connect VPC to Internet using Internet Gate Way and configure it in the Route Table . I also have create Security Group that open Port 22, 8080
 
 - Create EC2 Instances :
+  
 ```
 data "aws_ami" "latest-amazon-linux-image" {
   most_recent = true
-  owner = ["amazon"] 
+  owner = ["amazon"]
+  filter = {
+    name = "name"
+    values = ["amzn2-ami-kernel-*-x86_64-gp2"]
+  }
+  filter = {
+    name = "virtualization-type"
+    values = ["hvm"]
+  }
 }
  
 resource "aws_instance" "myapp-server" {
-  ami = ami-065ab11fb3d0323d
+  ami = data.aws_ami.latest-amazon-linux-image.id
 }
 ```
 
@@ -1215,7 +1224,62 @@ resource "aws_instance" "myapp-server" {
 
     - To get `Owners` got to EC2 -> Image AMIs -> paste the `ami id` image that I want to get owner from. I will see the owner on the tap
    
-    - I can also have my own Image . In the Launch instances -> Amazon Machine Image -> I can see My AMIs section . For example If I create a EC2 Instance the Amazon Linux Image then I make changes on top of that like install some tools etc and just prepare it for my own needs, I can create my own Image and reuse for other deployments  
+    - I can also have my own Image . In the Launch instances -> Amazon Machine Image -> I can see My AMIs section . For example If I create a EC2 Instance the Amazon Linux Image then I make changes on top of that like install some tools etc and just prepare it for my own needs, I can create my own Image and reuse for other deployments
+
+    - Then I have a `filter` . filter in data let me define the criteria for this query  . Give me the most recent Image that are owned by Amazon that have the name that start with `amzn2-ami-kernel` (Or can be anything, any OS I like to filter) . In `filter {}` I have `name` attr that referencing which key I wants to filter on, and `values` that is a list
+   
+    - I can define as many filter as I want
+   
+    - Output the `aws_ami` value to test my value is correct `output "aws_ami_id" { value = data.aws_ami.latest-amazon-linux-image }` . Then I will see `terraform plan` to see the output object . However with output is how I can actually validate what results I can getting with this data execution . After this 
+I can get the AMI-ID and put it in `ami`
+  
+#### Create EC2 Instances 
+
+```
+tf.main
+
+variable instance_type {}
+
+data "aws_ami" "latest-amazon-linux-image" {
+  most_recent = true
+  owner = ["amazon"]
+  filter = {
+    name = "name"
+    values = ["amzn2-ami-kernel-*-x86_64-gp2"]
+  }
+  filter = {
+    name = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+ 
+resource "aws_instance" "myapp-server" {
+  ami = data.aws_ami.latest-amazon-linux-image.id
+  instance_type = var.instance_type
+
+  subnet_id = aws_subnet.myapp-subnet-1.id
+  vpc_security_group_ids = [aws_default_security_group.default_sg.id]
+  availability_zone = var.avil_zone
+}
+```
+
+```
+terrform.tfvars
+
+instance_type = "t2.micro"
+```
+
+- Second Required Attr is `instance_type` . I can choose `instance_type` base on how much `resource` I want .
+
+- Maybe I want to deploy different type in different Environment so I can make it configurable and reference it as a `Variable`
+
+- Other Attribute is Optional like subnet id and security group id etc ... If I do not specify them explicitly, then the EC2 instance that we define here will acutally launched in a default VPC in one of the AZ in that Region in one of the Subnet . However I have create my own VPC and this EC2 end up in my VPC and be assign the Security Group that I created in my VPC .
+
+- To define specific subnet : `subnet_id = aws_subnet.myapp-subnet-1.id`
+
+- To define Security Group : `vpc_security_group_ids = [aws_default_security_group.default_sg.id]`
+
+
 
 
 
