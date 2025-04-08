@@ -1191,6 +1191,31 @@ resource "aws_default_security_group" "myapp-sg" {
 }
 ```
 
+#### Amazon Machine Image for EC2 
+
+- Review : I have a VPC that has a Subnet inside . Connect VPC to Internet using Internet Gate Way and configure it in the Route Table . I also have create Security Group that open Port 22, 8080
+
+- Create EC2 Instances :
+```
+data "aws_ami" "latest-amazon-linux-image" {
+  most_recent = true
+  owner = ["amazon"] 
+}
+ 
+resource "aws_instance" "myapp-server" {
+  ami = ami-065ab11fb3d0323d
+}
+```
+
+  - `ami` : Is a Operating System Image . Values of this is a ID of the image `ami-065ab11fb3d0323d`
+
+    - This `ami id` might be different base on Region. Also it can be change when the new image gets released . Should never hardcode it
+   
+    - So Instead hard code `ami id` I will use `data` to fetch the Image ID
+
+    - To get `Owners` got to EC2 -> Image AMIs -> paste the `ami id` image that I want to get owner from. I will see the owner on the tap
+   
+    - I can also have my own Image . In the Launch instances -> Amazon Machine Image -> I can see My AMIs section . For example If I create a EC2 Instance the Amazon Linux Image then I make changes on top of that like install some tools etc and just prepare it for my own needs, I can create my own Image and reuse for other deployments  
 
 
 
