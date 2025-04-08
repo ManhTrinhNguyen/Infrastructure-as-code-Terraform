@@ -1260,6 +1260,14 @@ resource "aws_instance" "myapp-server" {
   subnet_id = aws_subnet.myapp-subnet-1.id
   vpc_security_group_ids = [aws_default_security_group.default_sg.id]
   availability_zone = var.avil_zone
+
+  associate_public_ip_address = true
+
+  key-name = "server-key-pair"
+
+  tags = {
+    Name: "${var.env_prefix}-server"
+  }
 }
 ```
 
@@ -1278,6 +1286,35 @@ instance_type = "t2.micro"
 - To define specific subnet : `subnet_id = aws_subnet.myapp-subnet-1.id`
 
 - To define Security Group : `vpc_security_group_ids = [aws_default_security_group.default_sg.id]`
+
+- `associate_public_ip_address = true`. I want to be able access this from the Browser and as well as SSH into it .
+
+- I need the keys-pair (.pem file) to SSH to a server . Key pair allow me to SSH into the server by creating public private key pair or ssh key pair . AWS create Private Public Key Pair and I have the private part in this file .
+
+  - To secure this file I will move it into my user `.ssh`  folder : `mv ~/Downloads/server-key-pair-pem` ~/.ssh/ ` and then restrict permission : `chmod 400 ~/.ssh/server-key-pair.pem` . This step is required bcs whenever I use a `.pem` doesn't a strict access aws will reject the SSH request to the server
+ 
+  - To use the key : `key-name = "server-key-pair"`
+ 
+- Now I can use `terraform apply --auto-approve` to create EC2 Instance
+
+- After created I can ssh into it `ssh -i ~/.ssh/server-key-pair.pem ec2-user@<public-ip>`
+
+#### Automate create SSH key Pair
+
+```
+main.tf
+
+resource "aws_key_pair" "ssh-key" {
+  key_name = "server-key"
+  public_key = 
+}
+```
+
+- `public_key` : I need a Public Key so AWS can create the Private key pair out of that Public key value that I provide
+
+- Where Do I get the Public key ? Locally I can create my own Private and Public key pair it by using `ssh-keygen` then I have files like this `.ssh/id_rsa.pub` and `.ssh/id_rsa` I can reuse it for other Provider 
+
+
 
 
 
