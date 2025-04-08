@@ -1375,8 +1375,60 @@ public_key_location = "/Users/nana/.ssh/id_rsa.pub"
 
 -  I want to ssh to server, install docker, deploy container automatically . So i will create configuration for it too
 
--  With Terraform there is a way to execute commands on a server on EC2 server, 
+-  With Terraform there is a way to execute commands on a server on EC2 server at the time of creation . As soon as Intances ready. I can define a set of commands that Terraform will execute on the Server . And the way to do that is using Attr `user_data`
 
+-  `user_data` is like an Entry point script that get executeed on EC2 instance whenever the server is instantiated . I can provide the script using multiline string and I can define it using this syntax
+
+    ```
+    main.tf
+
+    variable public_key_location {}
+    
+    resource "aws_key_pair" "ssh-key" {
+      key_name = "server-key"
+      public_key = file(var.public_key_location)
+    }
+    
+    resource "aws_instance" "myapp-server" {
+      ami = data.aws_ami.latest-amazon-linux-image.id
+      instance_type = var.instance_type
+    
+      subnet_id = aws_subnet.myapp-subnet-1.id
+      vpc_security_group_ids = [aws_default_security_group.default_sg.id]
+      availability_zone = var.avil_zone
+    
+      associate_public_ip_address = true
+    
+      key_name = aws_pair.ssh-key.key_name
+
+      user_data = <<EOF
+      
+      ### Inside this block I can define the whole shell script . Just like I would write it in a normal script file, in a bash file
+  
+                    #!/bin/bash
+                    sudo yum update -y && sudo yum install -y docker
+                    sudo systemctl start docker
+                    sudo usermod -aG docker ec2_user
+                    docker run -p 8080:80 nginx
+                  EOF
+
+      user_data_replace_on_change = true
+    
+      tags = {
+        Name: "${var.env_prefix}-server"
+      }
+    }
+    ```  
+
+    - `-y`: Stand for automatic confirmation
+ 
+    - `sudo systemctl start docker` : Start docker
+ 
+    - `sudo usermod -aG docker ec2_user` : Make user can execute docker command without using sudo
+ 
+    - So above is a `user_data` command that will run everytime the instance gets launched . I just need to configure the Terraform file, so that each time I change this user data file, The Instance actually get destroyed and re-created.
+ 
+    - If I check AWS_Provider docs and check for `aws_intance` I can see the `user_data` input filed has an optional flag `user_data_replace_on_change` . I want enable this flag, I want to ensure that my Instance is destroyed and recreated when I modify this `user_data` field . This way I know that my user data script is going to run each time on the clean, brand-new instance, which will ge me a consistent State 
 
 
 
