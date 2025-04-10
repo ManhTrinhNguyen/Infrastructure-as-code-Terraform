@@ -1548,8 +1548,83 @@ provisioner "remote-exec" {
   } 
   ```
 
-- Different bettween `user_data` and `remote-exec` is that `user_data` just passing the data to AWS . and `remote-exce` is execute from Terraform . In this case I am ssh to EC2 and create new directory from Terraform 
+- Different bettween `user_data` and `remote-exec` is that `user_data` just passing the data to AWS . and `remote-exce` is execute from Terraform . In this case I am ssh to EC2 and create new directory from Terraform .
 
+- `remote-exec` is actually execute on the Remote Server not on Local Machine . That mean If I want to execute a Script file I have to copy that file to a remote server first . To do that I use `provisioner "file" {}`
+
+- `provisioner "file" {}` specificly made for copying file from our local machine to the remote machine . To copy a file I have `source = <name-of the-file>` and `destination = "/home/ec2-user/<name-of-the-file>"` . And the `remote-exec` provisioner needs to be updated so we have the absolute path of the script on our EC2 Instance . So the destination we are using in the file provisioner needs to be used here as well, so the script can run . And then I would be able to execute that file that gets copied and created on the remote machine remotely by ssh into it and then execute the file .
+
+```
+variable private_key_location {}
+
+resource "aws_instance" "myapp-instance" {
+  connection {
+    type = "ssh"
+    host = self.public_ip
+    user = "ec2-user"
+    private_key = file(var.private_key_location)
+  }
+
+  provisioner "file" {
+    source = "entry-srcipt.sh"
+    destination = "/home/ec2-user/entry-script-on-ec2.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = ["/home/ec2-user/entry-script-on-ec2.sh"]
+  }
+} 
+```
+
+- If I want to copy file to multiple different servers I can have own `connection {}` blocks inside the `provisioner "file" {}`
+
+```
+provisioner "file" {
+  source = "entry-srcipt.sh"
+  destination = "/home/ec2-user/entry-script-on-ec2.sh"
+
+  connection {
+    type = "ssh"
+    host = someotherserver.public_ip
+    user = "ec2-user"
+    private_key = file (var.private_key_location)
+  }
+}
+```
+
+- There is a cleaner way to use `remote-exec` and run this script from our local machine as a alternative . And this is will use the local path of the script and copy the file to the remote server in one single command using `script` instead of `inline`
+
+  - `script = "entry-script.sh"` this I just need to provide the script file from my local machine on my Terraform project . Agian I am taking a local script copying it to the remote server and then executing it but this time it is all done in 1 command which is a cleaner and better way of doing it
+ 
+- There is 1 more provisioner `provisioner "local-exec" {}` . The command that will be executed locally . For example if I want to execute some commamd locally on my laptop then I can execute them using `local-exec` .
+
+```
+provisoner "local-exec" {
+  command = "echo ${self.public_ip} > output.txt"
+}
+```
+
+- When I am working with Terraform there is actually alot of use case and scenarios where I would want to execute some stuff remotely on my servers . There is things to configure, there are applications and software to be installed and so on.
+
+#### Provisoner are not recommended by Terraform 
+
+- Why I should not be using them ? There might be some unexpected behavior or some parts of the script or command may not actually execute and I may have some problems
+
+- Provisoner concept actually breaks the concept of idempotency in Terraform  . In Idempotency it is a word that alway give me the same output no matter how many time I am execute command . So when I do `terraform apply` with the same exact configuration it always give me the same output . So the problem with provisioner is  that bcs I am using scripts, they are basic shell script that are not actually part of terraform itself . Terraform have no way of knowing what I am executing in that Script . Terraform has no way of knowing wheather these commands actually executed successfully . Or if we change something in here Terraform can not tell wheather this change acutally deviates from the current state . So what needs to be actually done in order to apply the changes that I made in my commands or in my shell script
+
+- Also Terraform can not control the way I write those script
+
+- There is the alternative also the best practice :
+
+  - If I want to execute command remotely or configure a remote server I actually should use some configuration management tool (Chef, Ansible, Puppet) .
+ 
+  - Once the Server is provisioned with terraform I can hand over the process to one of those configuration management tools. So using terraform I can pass the init data or initial data to this config manager tool . And then config manager takes over and configure the server and does all the stuff that it can do .
+ 
+  - Bcs the config manager tools have more visibility inside the VM and they can actually compare the state and they can manage and control how the things get executed there, while Terraform can not do this
+ 
+  - As for the `local-exec` If I want to locally create files, there is a provider called local that maintained by Hashicorp and this is a recommended way of handling local files in Terraform . The advantage of using local provider instead of local exec will be that the provider actually has a way of comparing if something changed and what the current and desired states are so I can detect the changes
+ 
+- And as for any type of other script execution generally . Wheather it copying files to the remote or executing some scripts, instead of using the configuration manager, especially that I am building this whole thing up using CI/CD pipeline where I intergrate terraform, I can acutally execute this script as a separate part from from Jenkins or my CI/CD tool 
 
 
 
