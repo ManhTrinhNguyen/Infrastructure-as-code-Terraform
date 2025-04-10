@@ -1487,5 +1487,85 @@ configureing server, installing/updating packages version and so on
 
 ## Provisioners
 
+- There is many case where I need to execute some soft of Command or Shell Script on the Virtual Server that I have provisioned with Terraform by passing in the `user_data`
+
+- Many of the cloud providers like aws, etc ... They support this attribute to hand over some initial execution connamnd or a file . However there is important to diffentciate here that all this data or these commands or script to be executed will basically be handed over from Terraform to the cloud Provider
+
+- Once the EC2 created by Terraform and Terraform get a status of EC2 created . However Terraform doesn't wait for the virtual machine to be initialized . Once the Cloud Provider initialized will then execute these commands on that initialized server . So Terraform doesn't have any control over what's will happen next or how these command will be executed . If one of the command fail Terraform will not know about the Error
+
+- There are still way to execute command execute script from Terraform . Terraform has its own concept of Provisioner for executing commands and scripts on Virtual Machines . And it is good to know what these concepts are how they are used and what it is about .
+
+- I will create a new branch `git checkout -b feature/provisioner`
+
+- Alternative to executing the commands or script on the remote server using a provisioner called `remote-exec`
+
+- `remote-exec` is a Provisioner that allow us to connect to the remote server and execute command on that server .
+
+- `remote-exec` have to be execute inside the `resource "aws_instance" "" {}` . 
+
+- To define commands here is using `inline = []` let me define a list of commands to be executed on a remote server . For example
+
+```
+provisioner "remote-exec" {
+  inline = [
+    "export ENV=dev"
+    "mkdir newDir"
+  ]
+}
+```
+
+- Whenever I define a remote `remote-exec` provisoner I have to tell Terraform how to connect to that remote server . Eventhough I am in the `resource "aws_instance" "" {}` it doesn't actually by default connect to that Server . So I need to define the connection explicicly to connect to this remote server .
+
+  - I can do that by using `connection {}` provisioner .
+ 
+  - Inside `connection {}` I have 2 `types` of connection . `type = "ssh"` and `type = "winrm"` . The default is `SSH`
+ 
+  - and then I have the `host =` I have to tell Terraform the remote server address . Since I am inside the `resources "aws_instance"` and this is a Server I am connecting to I can use `host = self.public_ip` . In Programming Language I have `this` to refer to the current context
+ 
+  - And I have user name `user = "ec2-user"`
+ 
+  - And I have the `private_key = file(var.private_key_location)`
+ 
+  - I can also have `password` if I use Username and Password
+
+  ```
+  variable private_key_location {}
+
+  resource "aws_instance" "myapp-instance" {
+    connection {
+      type = "ssh"
+      host = self.public_ip
+      user = "ec2-user"
+      private_key = file(var.private_key_location)
+    }
+  
+    provisioner "remote-exec" {
+      inline = [
+        "export ENV=dev"
+        "mkdir newDir"
+      ]
+    }
+  } 
+  ```
+
+- Different bettween `user_data` and `remote-exec` is that `user_data` just passing the data to AWS . and `remote-exce` is execute from Terraform . In this case I am ssh to EC2 and create new directory from Terraform 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
  
