@@ -1626,7 +1626,9 @@ provisoner "local-exec" {
  
 - And as for any type of other script execution generally . Wheather it copying files to the remote or executing some scripts, instead of using the configuration manager, especially that I am building this whole thing up using CI/CD pipeline where I intergrate terraform, I can acutally execute this script as a separate part from from Jenkins or my CI/CD tool 
 
+#### Provisioner failure 
 
+- If the provison fail for example If I use the wrong source location of the script so the file can be copied and if it is not found on the remote machine so the file can not be executed, then Terraform will actually taint or mark the resources where the provision is getting executed as failed . So I have to recreated, eventhough the EC2 instance may get created and initialized I will get an error status from Terraform and the EC2 instance will be marked for deletion 
 
 
 
