@@ -1,4 +1,5 @@
 [Provisioner](#Provisioners)
+[Modules Part 1](#Modules-1)
 
 # Infrastructure-as-code-Terraform
 
@@ -1628,12 +1629,44 @@ provisoner "local-exec" {
 
 #### Provisioner failure 
 
-- If the provison fail for example If I use the wrong source location of the script so the file can be copied and if it is not found on the remote machine so the file can not be executed, then Terraform will actually taint or mark the resources where the provision is getting executed as failed . So I have to recreated, eventhough the EC2 instance may get created and initialized I will get an error status from Terraform and the EC2 instance will be marked for deletion 
+- If the provison fail for example If I use the wrong source location of the script so the file can be copied and if it is not found on the remote machine so the file can not be executed, then Terraform will actually taint or mark the resources where the provision is getting executed as failed . So I have to recreated, eventhough the EC2 instance may get created and initialized I will get an error status from Terraform and the EC2 instance will be marked for deletion
+
+## Modules-1
+
+#### Introduction 
+
+- Now we have written a configuration for a pretty basic use case of just creating an EC2 instance and deploying it into a subnet . However still with this basic configuration we have over 100 lines of code already all in 1 file . And More resources we add and the more complex our inrastructure gets . We will end up with huge file where we just have an endless scroll . Very difficult if I want to change something or find something
+
+- In Terraform we have concept of modules to make configuration not monolithic . So I am basically break up part of my configuration into logical groups and package them together in folders . and this folders then represent modules
+
+- Modules = container for multiple resources used together
+
+- For example : Every `resources` that we need in order to create EC2 instances . Will be package in 1 module . The Instances itself, the AWS instance, the key pair creation bcs I need the key pair for that instance to get the most recent image . And also security Group bcs we are asigning security group to EC2 instance . So this could be 1 logical grouping of the resources and we can all that a web server instance . So if we are deploying an infrastructure with multiple instances, in different regions, in differnet AZ, We can reuse that same web server module in multiple different places .
+
+- The good thing is whenever I define a module . I can pass in whatever parameter I want I can parameterize any values that I want to pass from outside dynamically . Also I can access the output of the module . So whenever the resources get created that are part of a module we can acutally access the objects and its attributes afterwards .
+
+- Just like in Programming I define function once and can reuse it in multiple different places in the configuration, and we can pass in parameters to that function and we can decide what these parameters are going to be and we can return some values from the function .
+
+- And modules make the configuration much cleaner . Make it easier to find the parts of configuration and resoruces that I have defined
+
+- Note : Whenever we are creating a module, it should be a proper abstraction of our resources . Meaning it doesn't make sense to just have a module for creating an AWS instance just one resource . Bcs then we have an overhead of creating this whole new folder and a configuration file just for one resource . It only make sense to create a module when I want to group a couple of `resoruces` together into a logical group . Like Creating a web server with all the configuration around it, like firewall with security group and the key pair belonging to it . Maybe a volumes that will be attached to it and so on ... Same thing with Networking . For example when I create a VPC its need subnets inside, it needs internet gateway, route table so all of it should be in 1 module called VPC
+
+- We can create our own module . However for common use cases there are already modules created by Terraform or other companies that we can reuse
+
+- If I go to `registry Terraform` . In the Modules section I can see a bunch of Module available
+
+  - `Resources tap` : Basically it will create everything for me I just have to provide the parameters for all those resources
+ 
+  - `Inputs  tap` : And the parameter that I can provide are defined in inputs tap
+ 
+  - `Outputs` : The resulting Object or resources that are creating using this module return . So I can use all these values as an output . For example when I create the VPC with subnets, I need the VPC id and subnet id maybe to create other `resources` like EC2 isntances and so on and they will be in another module. And I have to use the output of one module in another by referencing those ids . And I can do that bcs those value will be exposed
+ 
+  - `dependency` : describe wheather this module contains or references other modules . In this case it doesn't so it creating everything from sratch with resources . However it depends on a provider of AWS which is logical bcs it create a bunch of  AWS resources so it need to have AWS provider
+ 
+  - Whenever I am using that module when I use `terraform init` it actutally also intall the module 
 
 
-
-
-
+## Modules-2
 
 
 
