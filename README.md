@@ -1,6 +1,10 @@
-[Provisioner](#Provisioners)
-[Modules Part 1](#Modules-1)
+- [Provisioner](#Provisioners)
 
+- [Modules Part 1](#Modules-1)
+
+- [Modules Part 1](#Modules-2)
+
+- [Modules Part 1](#Modules-3)
 # Infrastructure-as-code-Terraform
 
 ## Overview 
@@ -1668,7 +1672,40 @@ provisoner "local-exec" {
 
 ## Modules-2
 
+#### Modularize our project 
 
+- I will create a branch for module `git checkout -b feature/modules`
+
+- Best practice: Separate Project structure . Extract everything from main to those file
+
+  - main.tf
+  - variable.tf
+  - outputs.tf
+  - providers.tf
+
+- Create `output.tf` file : `touch output.tf`
+
+- Create `variable.tf` file : `touch variable.tf`
+
+- Create `main.tf` file : `touch main.tf`
+
+- Create `providers.tf` file : `touch providers.tf`
+
+- I don't have to link that file I don't have to reference the `variable.tf` and `output.tf` bcs Terraform knows that these files belong together and it kind of grabs everyting and link them together
+
+- And I also have the `providers.tf` files that will hold all of the providers which I have configured already . Eventhough I have only 1 here which is our AWS provider it is **Best Pratice** to use providers file in the same way .
+
+#### Create Module
+
+Create folder call modules : `mkdir modules`.
+
+Inside `modules` :
+
+  - Create folders for the acutal modules : `mkdir webserver` - `mkdir subnet`
+
+  - Each module will have its own `main.tf`, `output.tf`, `providers.tf`, `variables.tf`.
+
+So now when we create module and configuration of these module we can just reference them from the `main.tf`
 
 
 
