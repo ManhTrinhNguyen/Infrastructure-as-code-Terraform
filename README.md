@@ -1705,7 +1705,53 @@ Inside `modules` :
 
   - Each module will have its own `main.tf`, `output.tf`, `providers.tf`, `variables.tf`.
 
-So now when we create module and configuration of these module we can just reference them from the `main.tf`
+So now when we create module and configuration of these module we can just reference them from the `main.tf` . So we have an entry point configuration file which is our `root` module and then we have the children modules inside that we can reference from `root` .  
+
+There is 1 one about modules and when I am creating them . When I am creating a module it actually should group a couple of resources together . So creating a module for one or 2 `resources` deosn't really make much sense . When I create a `modules` it should group at least 3 or 4 `resources`  
+
+So I will extract the whole Configuration of the networking . Grap those 3 `resources` (Subnet, Internet Gateway, Route table and its association with gateway). In this case I will extract those `resources` into `/subnet/main.tf`
+
+The way to use the module from another config file. In our case I am going to be actually referencing and using that module in the `main.tf` of the `root` module , is make it completely configrurable bcs we have to pass in all the variables . All the values that are set in the `resources` should be pass in by the configuration that is referencing it . So all of these values are going to be replaced with `variables` . 
+
+  - Example in `/subnet/main.tf`
+
+  ```
+  resource "aws_subnet" "myapp-subnet-1" {
+    vpc_id = var.vpc_id
+    cidr_block = var.subnet_cidr_block
+    availability_zone = var.avail_zone
+
+    tags = {
+      Name : "${var.env_prefix}-subnet-1"
+    }
+  }
+
+  resource "aws_default_route_table" "myapp-default-rtb" {
+    default_route_table_id = var.default_route_table_id
+    route {
+      cidr_block = "0.0.0.0/0"
+      gateway_id = aws_internet_gateway.myapp-igt.id
+    }
+  
+    tags = {
+        Name: "${var.env-prefix}-rtb"
+      }
+  }
+
+  resource "aws_internet_gateway" "myapp-igt" {
+    vpc_id = var.vpc_id
+  
+    tags = {
+      Name: "${var.env-prefix}-igw"
+    }
+  }
+  ```
+
+  - `aws_internet_gateway` reference of a `resource` that exist in the same module . So we don't have to replace that through a variable bcs we have that `resource` available in the same context
+
+  - If anything don't have `reference` inside the same context I have to replace with `variable`
+
+Now I have to define all those `variables` inside that module `/subnet` in the `/subnet/variables.tf` . So all the variable definitions must acutally be in that file. 
 
 
 
