@@ -1856,6 +1856,187 @@ How do we access the resources that will be created by a `module` in another mod
 
 ## Modules-3
 
+#### Create webserver Module
+
+We have the instance itself, key-pair that created for the Instance, we have the AMI query from the AWS which is also relevant for the Instance, and we have the Security Group, which also configures the Firewalls for the Instance
+
+- In `webserver/main.tf` . We need to fix the reference to all the value like `vpc_id` . We can leave all these fixed coded values if they don't change Or we can also parameterized them if  we want to pass in different values .
+
+- For example: If we want to be able to decide which operating system image should be use for the Instances : `values = [var.image_name]`
+
+- `subnet_id = aws_subnet.myapp-subnet-1.id` We don't have access to a module anymore bcs this module actually define outside . So we will parameterize that as well . `subnet_id = var.subnet_id` .
+
+- Then I will move the `entry-script.sh` to webserver module
+
+```
+resource "aws_security_group" "myapp-sg" {
+  vpc_id = var.vpc.id
+  description = "Allow inbound traffic and outbout traffic"
+  tags = {
+    Name: "${var.env-prefix}-sg"
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "myapp-ingress-8080" {
+  security_group_id = aws_security_group.myapp-sg.id
+  from_port = 8080
+  to_port = 8080
+  cidr_ipv4 = "0.0.0.0/0"
+  ip_protocol = "TCP"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "myapp-ingress-22" {
+  security_group_id = aws_security_group.myapp-sg.id
+  from_port = 22
+  to_port = 22
+  cidr_ipv4 = var.my_ip
+  ip_protocol = "TCP"
+}
+
+resource "aws_vpc_security_group_egress_rule" "myapp-egress" {
+  security_group_id = aws_security_group.myapp-sg.id 
+  ip_protocol = "-1" 
+  cidr_ipv4 = "0.0.0.0/0"
+}
+
+data "aws_ami" "latest-amazon-image" {
+  owners = [ "amazon" ]
+  most_recent = true
+
+  filter {
+    name = "name"
+    values = [var.image_name]
+  }
+
+  filter {
+    name = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+
+resource "aws_instance" "myapp-server" {
+  ami = data.aws_ami.latest-amazon-image.id
+  instance_type = var.instance_type
+  
+  subnet_id = var.subnet_id
+  vpc_security_group_ids = [aws_security_group.myapp-sg.id]
+  availability_zone = var.availability_zone
+
+  associate_public_ip_address = true
+
+  key_name = aws_key_pair.ssh-key.key_name
+
+  user_data = file("entry_script.sh")
+
+  user_data_replace_on_change = true
+  tags = {
+    Name = "${var.env-prefix}-server"
+  }
+}
+
+resource "aws_key_pair" "ssh-key" {
+  key_name = "server-key"
+  public_key = file(var.public_key_location)
+}
+output "dev-vpc-id" {
+  value = aws_vpc.myapp-vpc.id
+} 
+output "dev-subnet-id" {
+  value = aws_subnet.myapp-subnet-1.id
+}
+
+output "public_IP" {
+  value = aws_instance.myapp-server.public_ip
+}
+```
+
+  - Declare all those `variables` in the `/webserver/variables.tf` .
+
+```
+variable vpc_id {}
+variable my_ip {}
+variable env_prefix {}
+variable image_name {}
+variable public_key_location {}
+variable instance_type {}
+variable subnet_id {}
+variable sg_id {}
+variable avail_zone {} 
+```
+
+- In `/root/main.tf` . We are referencing every value either using VAR or `module` or `resource name` which is good pratice bcs we are not hardcoding any value  . 
+
+```
+module "myapp-server" {
+  source = "./modules/webserver"
+  vpc_id = aws_vpc.myapp-vpc.id
+  my_ip = var.my_ip
+  env_prefix = var.env-prefix
+  image_name = var.image_name
+  public_key_location = var.public_key_location
+  instance_type = var.instance_type
+  subnet_id = module.myapp-subnet.subnet.id ## module.<module-name>.<name-of-ouput-of-that-module>.id
+  avail_zone = var.avail_zone
+}
+```
+
+- And now We have to make sure that all those values are actually defined in our `terrform.tfvars`
+
+```
+vpc_cidr_block = "10.0.0.0/16"
+subnet_cidr_block = "10.0.10.0/24"
+avail_zone = "us-west-1a"
+env_prefix = "dev"
+my_ip = "85.246.32.98/32"
+instance_type = "t2.micro"
+public_key_location = "/Users/trinh/.ssh/id_rsa.pub"
+image_name = "Deep Learning Proprietary Nvidia Driver AMI GPU TensorFlow 2.16 (Amazon Linux 2) 20240729"
+```
+
+- in `root/output.tf` . I can refernce those values through `module` component . We need the name of the module which called `myapp-server` . and inside of the `module` we need to access the EC2 instance . And in order to access the `resources` and its atrribute from a module . We have to `output` that object first
+
+```
+output "ec2_public_ip" {
+  value = module.myapp-server.instance.public_id ## module.<module-name>.<output-name-of-that-module>.attribute
+}
+```
+
+- in `/webserver/output.tf`
+
+```
+output "instance" {
+  value = aws_instance.myapp-server
+}
+```
+
+So now we have updated all of our files, so that the references to all the different modules, resources and outputs should not have any issues when we try to run Terraform commands. 
+
+- run `terraform plan` to preview
+
+- `terraform apply`
+
+Terraform refresh the State it compared the current state with the desired state and this is the output in the terminal . 
+
+  - First VPC and subner already created so they will not created again . However we have Security Group an existing one that will be destroyed and new `resources` will be create in their place
+
+#### Wrap up 
+
+We already created a sturcture in Terraform which is the structure standard way of structring my Terraform project .
+
+We created `modules` . We are logically grouped similar `resources` that belong together into own `module` while still creating one of the `resources` outside . We also learn how to use those modules how to reference them and pass on different values that we configured inside the modules themselves . As well as we will learn how to reference the `resource` object inside the `modules` itself using this module reference and then basically just access any attribute of that object
+
+We have all all the `resources` parameterzied which is the **best practice** . So all the values are set in one place in the tf vats file . If something changes we just adjust it in one place 
+
+
+
+
+
+
+
+
+
+
+
 
 
 
