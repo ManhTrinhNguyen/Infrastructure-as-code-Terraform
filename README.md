@@ -2,9 +2,9 @@
 
 - [Modules Part 1](#Modules-1)
 
-- [Modules Part 1](#Modules-2)
+- [Modules Part 2](#Modules-2)
 
-- [Modules Part 1](#Modules-3)
+- [Modules Part 3](#Modules-3)
 # Infrastructure-as-code-Terraform
 
 ## Overview 
@@ -1851,6 +1851,10 @@ How do we access the resources that will be created by a `module` in another mod
   - Basically Terraform detects that we are referring to a `module` called `module "my-subnet" {}` it only tries to find and initialzi that module
 
 `terraform plan` : To preview what Terraform would do 
+
+`terraform apply` : Acutally apply the configuration 
+
+## Modules-3
 
 
 
