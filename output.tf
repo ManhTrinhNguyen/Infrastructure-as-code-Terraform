@@ -5,6 +5,6 @@ output "dev-subnet-id" {
   value = module.myapp-subnet.subnet.id
 }
 
-output "public_IP" {
-  value = aws_instance.myapp-server.public_ip
+output "ec2_public_IP" {
+  value = module.myapp-server.server.public_ip
 }
