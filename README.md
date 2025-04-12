@@ -1751,12 +1751,106 @@ The way to use the module from another config file. In our case I am going to be
 
   - If anything don't have `reference` inside the same context I have to replace with `variable`
 
-Now I have to define all those `variables` inside that module `/subnet` in the `/subnet/variables.tf` . So all the variable definitions must acutally be in that file. 
+Now I have to define all those `variables` inside that module `/subnet` in the `/subnet/variables.tf` . So all the variable definitions must actually be in that file. 
 
+  - in `/subnet/variables.tf`
 
+  ```
+  variable subnet_cidr_block {}
+  variable avail_zone {}
+  variable env_prefix {}
+  variable vpc_id {}
+  variable default_route_table_id {}
+  ```
 
+  - I will remove the `variable subnet_cidr_block {}` from `root/variable.tf` bcs we only need it in the subnet module
 
+#### Use The module 
 
+Now I have configuration and `variable` defined . How do I use the `module` ?
+
+The way to use that is, in `root/main.tf` I use `module "myapp-subnet" {}` . Then I need a couple of Attribute 
+
+  - `source = "modules/subnet"` : Where this module actually living .
+
+  - Once `source` is defined now We have to pass in all those `variables` that I defined in `/subnet/variable.tf`, the value to those `variables` need to be provided when we are refering to module
+
+  -  Think of it like defind a function with a bunch of parameters and then calling that function in here by passing parameters one be one as a values .
+
+  -  Previously we had all these `variables` already set in `root/terraform.tfvars` . Now since we use `module` we have to define them in the `module "myapp-subnet" {}` section .
+
+  - We can set `subnet_cidr_block = "0.0.0.0/32"` by hard coding like this OR We can also set them as a `variables` `subnet_cidr_block = var.subnet_cidr_block` . If I want to reference it from `root/main.tf` in the root module we need that `variable` defininition also in the `variables.tf`
+
+  - We are referencing a `variable` called `sunbet_cidr_block` that has to be define in the same `module` where `root/main.tf` is . And those `/root/variable.tf` then are set through the `terraform.tfvars` (Where I define value for all those variable)
+
+  - So this is how it work . Actual Values defined in `terraform.tfvars` -> that are set as values in `root/variables.tf` -> and then passing on those values like `var.subnet_cidr_block` to the `module "myapp-subnet"` which is also grabbing those values through `variable` references which also have to be find in the `subnet/variables.tf`
+  - 
+<img width="600" alt="Screenshot 2025-04-12 at 11 33 28" src="https://github.com/user-attachments/assets/a4b0670e-6ff9-4e80-8e2b-c9c1e30a9029" />
+
+```
+module "myapp-subnet" {
+  source = "./modules/subnet" ## ./ is for current directory
+  subnet_cidr_block = var.subnet_cidr_block
+  avail_zone = var.avail_zone
+  env_prefix = var.env_prefix
+  vpc_id = aws_vpc.myapp-vpc.id
+}
+```
+
+**Module Comparison to function**
+
+Input variables = like function arguments
+
+Output values = like function return values
+
+#### Module Output 
+
+How do we access the resources that will be created by a `module` in another module
+
+  - The first thing we need to do is output the subnet object . Kinda like exporting the subnet object so that it can be used by other modules the way we do that by using output component `/subnet/output.tf`
+
+  ```
+  output "sunbet" {
+    value = aws_subnet.myapp-subnet-1 
+  }
+  ```
+
+  - Now we have defined output here . We can actually access the subnet object by referencing the output
+
+  - Now I will reference the ouput from `/subnet/output.tf` in the `root/main.tf` . So we referencing one of the resources of a module and then we need a name of the `module` and we need to reference the name of the `ouput` . `module.<name-of-module>.<name-of-output-for-that-module>.id`
+
+  ```
+  resource "aws_instance" "myapp-server" {
+
+  ami = data.aws_ami.latest-amazon-image.id
+  instance_type = var.instance_type
+  
+  subnet_id = module.myapp-subnet.subnet.id
+  vpc_security_group_ids = [aws_security_group.myapp-sg.id]
+  availability_zone = var.availability_zone
+
+  associate_public_ip_address = true
+
+  key_name = aws_key_pair.ssh-key.key_name
+
+  user_data = file("entry_script.sh")
+
+  user_data_replace_on_change = true
+  tags = {
+    Name = "${var.env-prefix}-server"
+    }
+  }
+  ```
+
+#### Apply Configuration Changes 
+
+`terraform init` to initialize modules
+
+  - We don't see webserver `module` output in the terminal bcs we are not reference that in the root .
+
+  - Basically Terraform detects that we are referring to a `module` called `module "my-subnet" {}` it only tries to find and initialzi that module
+
+`terraform plan` : To preview what Terraform would do 
 
 
 
