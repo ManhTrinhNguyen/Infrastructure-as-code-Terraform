@@ -1794,6 +1794,7 @@ module "myapp-subnet" {
   avail_zone = var.avail_zone
   env_prefix = var.env_prefix
   vpc_id = aws_vpc.myapp-vpc.id
+  default_route_table_id = aws_vpc.myapp-vpc.default_route_table_id
 }
 ```
 
