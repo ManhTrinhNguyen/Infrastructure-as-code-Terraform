@@ -2,15 +2,6 @@ provider "aws" {
   region = "us-west-1"
 }
 
-variable "vpc_cidr_block" {}
-variable "subnet_cidr_block" {}
-variable "env-prefix" {}
-variable "availability_zone" {}
-variable "my_ip" {}
-variable "public_key_location" {}
-variable "instance_type" {}
-
-
 resource "aws_vpc" "myapp-vpc" {
   cidr_block = var.vpc_cidr_block
   
@@ -19,54 +10,14 @@ resource "aws_vpc" "myapp-vpc" {
   }
 }
 
-resource "aws_subnet" "myapp-subnet-1" {
-  vpc_id = aws_vpc.myapp-vpc.id
-  cidr_block = var.subnet_cidr_block
+module "myapp-subnet" {
+  source = "./modules/subnet"
+  subnet_cidr_block = var.subnet_cidr_block
   availability_zone = var.availability_zone
-
-  tags = {
-    Name: "${var.env-prefix}-subnet"
-  }
-}
-
-# resource "aws_route_table" "myapp-routable" {
-#     vpc_id = aws_vpc.myapp-vpc.id 
-
-#     route {
-#       cidr_block = "0.0.0.0/0"
-#       gateway_id = aws_internet_gateway.myapp-igt.id
-#     }
-
-#     tags = {
-#       Name: "${var.env-prefix}-rtb"
-#     }
-# } I DON"T NEED IT BCS I WANT TO USE DEFAULT ROUTE TABLE
-
-resource "aws_default_route_table" "myapp-default-rtb" {
+  env-prefix = var.env-prefix
+  vpc_id = aws_vpc.myapp-vpc.id
   default_route_table_id = aws_vpc.myapp-vpc.default_route_table_id
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.myapp-igt.id
-  }
-
-  tags = {
-      Name: "${var.env-prefix}-rtb"
-    }
 }
-
-resource "aws_internet_gateway" "myapp-igt" {
-  vpc_id = aws_vpc.myapp-vpc.id 
-
-  tags = {
-    Name: "${var.env-prefix}-igw"
-  }
-}
- 
-# resource "aws_route_table_association" "myapp-rtb-association" {
-# subnet_id = aws_subnet.myapp-subnet-1.id
-# route_table_id = aws_route_table.myapp-routable.id
-# } I DON"T NEED IT BCS I WANT TO USE DEFAULT ROUTE TABLE
-
 resource "aws_security_group" "myapp-sg" {
   vpc_id = aws_vpc.myapp-vpc.id
   description = "Allow inbound traffic and outbout traffic"
@@ -116,7 +67,7 @@ resource "aws_instance" "myapp-server" {
   ami = data.aws_ami.latest-amazon-image.id
   instance_type = var.instance_type
   
-  subnet_id = aws_subnet.myapp-subnet-1.id
+  subnet_id = module.myapp-subnet.subnet.id
   vpc_security_group_ids = [aws_security_group.myapp-sg.id]
   availability_zone = var.availability_zone
 
@@ -135,15 +86,5 @@ resource "aws_instance" "myapp-server" {
 resource "aws_key_pair" "ssh-key" {
   key_name = "server-key"
   public_key = file(var.public_key_location)
-}
-output "dev-vpc-id" {
-  value = aws_vpc.myapp-vpc.id
-} 
-output "dev-subnet-id" {
-  value = aws_subnet.myapp-subnet-1.id
-}
-
-output "public_IP" {
-  value = aws_instance.myapp-server.public_ip
 }
 
