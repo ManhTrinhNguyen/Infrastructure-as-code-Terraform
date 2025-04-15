@@ -2288,6 +2288,51 @@ module "eks" {
 
 ## Provision-EKS-3
 
+#### Cluster Overview 
+
+Checkout Resources which is basically things that are already running one those Worker Nodes . And I have Kubernetes Work Loads like Pods, Daemon Set, Deployment, etc ... And I also have kube-proxy . And I have 2 coreDNS running in my Cluster . And I can see Configmap and Secret .  This is all the default that EKS and Kubernetes give me inside my cluster when I install it . This is basically all Kubernetes Processes in order to run the Cluster 
+
+I can also some configuraton data for the EKS Cluster itself like server endpoint, the certificate authority data, which subnets are part of that Cluster . 
+
+Also with Subnet are part of that cluster. Node Group name or Fargate profile whichever I have available . 
+
+So the Configuration part is more the configuration data on the AWS Infrastructure part, And the resources are more the Kubernetes level resources and configuration 
+
+  - kube-proxy is running on each of the Servers
+
+In IAM Service . I can see the `myapp-eks-cluster-...` role is created by Terraform 
+
+In EC2 I can see 3 Nodes running in my AWS account. And each one is in a differen AZs which is great thing bcs I have high Availability by distributing my Servers accross AZs 
+
+In VPC I have cidr block all default componet get created 
+
+  - Also Route Table and I have 3 Route Table actually got created for my VPC . 1 is Default, and 2 for public and private
+
+  - with Public Route table that was created with an Internet Gateway Route . IGW allow VPC to talk to the Internet
+
+  - with Private Route Table that was created with NAT routing so this is baciscally a route that allow worker Nodes to connect to the Control Plan Node . And the reason I need that is bcs our Worker Nodes are actually in one VPC and the Control Plane Node in another VPC which is managed by AWS . So these resources in two different VPC or two different Private Network and they ahve to talk to each other . And AWS make that communication possible without an Internet Gateway but using NAT gateway instead . So resources can still privately talk to each other from diferent VPCs . And that is basically the configuration for routing traffic back and forth from control plane nodes to Worker Nodes
+
+  - And I also have Subnet Association with those Route Table
+
+  - Also In the Subnet I have 3 Private Subnet and 3 Public Subnet on each AZs. All the Private Subnet they associate with the NAT Gateway and all the Public Subnet they associate with Internet Gateway
+
+In the Security Group . There is 3 different SG created in the back ground using VPC `module` 
+
+  - One is `eks-cluster-sg` . Inbound rule is allow all type of traffic on any ports within the cluster . Bcs the Pods and Services and nodes they have to communicate with each other from the different Worket Nodes, as well as commnicate with pods, containers and services On Control Plane Nodes
+
+  - Another one is `eks-cluster-node` and `eks-cluster-cluster` these 2 are for NodeGroup and cluster. So baciscally I have 2 Separate VPCs, 1 for Worker Nodes and 1 for Control Planes Nodes and all the Components all the Services running on Worker Nodes and Control Plane Nodes have to also talk to each other across these two different VPCs . and the Services actually run and listen on various Ports so with these SG I am opening the Ports so that these Services can talk to each other between those two VPCs . So I am opening the Correct Ports on both Worker nodes and Control Plane Nodes and as a source o who can access those ports are the security group themselves. Which again complies to the least privilege requirement of security bcs I am say only those resources that need to talk to each other will have permissions to talk to each other . So I have minimum require Permission on different Ports from different resources . And instead of having IP address ranges as the source of the communication so who can actually talk to the Services on these Ports . We have Security group as Sources where those different services are running
+
+#### Deploy nginx-App into Cluster 
+
+How to connect to Cluster using kubectl 
+
+<img width="409" alt="Screenshot 2025-04-15 at 14 41 45" src="https://github.com/user-attachments/assets/9602b86d-7d9d-49c5-851b-9f04eedebaef" />
+
+  - First I need to configure my environment so that kubectl can connect with my cluster . `aws eks update-kubeconfig --name myapp-eks-cluster --region us-west-1`
+ 
+  - Now the context was configured in my user home directory in the `/.kube/config` . This file contain all the information that kubectl and AWS IAM authenticator need to authenticate with to authenticate with AWS also authenticate with EKS Cluster
+
+  - If I try `kubectl get node` I will get error time out Which mean more thing need to configure  
 
 
 
