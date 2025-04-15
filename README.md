@@ -2209,9 +2209,82 @@ private_subnet_tags = {
 
 Execute `terraform plan` I will see the output of all the different `resources` that will be created when I execute my configuration 
 
- 
 
 ## Provision-EKS-2
+
+#### EKS Cluster and Worker Nodes 
+
+So now I have VPC already configured . I will create EKS Cluster
+
+I will create new file `touch eks-cluster.tf`
+
+I will use the EKS `module` . This will basically create all the `resources` needed in order to create cluster as well as any Worker Nodes that I configure for it and provision some of the part provision some of the part of Kubernetes 
+
+And in the dependencies section the `module` is also using Kubernetes Provider in order to connect to Kubernetes Cluster and execute some provisioning tasks there .
+
+It is a good idea to version all our Components generally bcs it make look more visible of which versions are used in case some problem happens, So I can debug it easily and know exactly which version are my `modules`
+
+First I add `cluster_name` and `cluster_version`
+
+Then I need to set `subnet_ids` . This is a list of Subnet that I want the Worker Nodes to be started in . So I have created a VPC with 6 Subnets (3 Private and 3 Public) . 
+
+  - Private : Where I want my Workload to be scheduled . 
+
+  - Public : are for external resources like Load Balancer of AWS for external connectivity
+
+  - So I will reference private subnet for `subnets_id = module.myapp-vpc.private_subnets` . For Security reason bcs It is not exposed to Internet .  I am referencing the `private_sunets` by `modules` bcs I have the `private_subnet` exposed from this module . If I want to reference any attributes of objects created by a module, then inside a module in our case it is the VPC module, I have the `output`. In `output` list I can see all the attributes that are exposed .
+
+Then I can set `tags` for EKS Cluster itself . I don't have to set some required text like I did in the `vpc module` 
+
+  - If I am running my Microservice Application in this Cluster then I can just pass in the name of my Microservice Application, just to know which Cluster is running in which Application
+
+ In addition to Subnet or the Private Subnets where workloads will run we also need to provide a VPC id  . I can also reference it through module . `module.myapp-vpc.vpc_id`
+
+ Then I need to configure how I want my Worker Nodes to run or what kind of Worker Nodes I want to connect to this Cluster .
+
+   - In this case I will use Nodegroup semi-managed by AWS . `eks_managed_node_groups` . The Value of this Attribute is a map of EKS managed NodeGroup definitions .
+ 
+<img width="435" alt="Screenshot 2025-04-15 at 13 22 08" src="https://github.com/user-attachments/assets/77221d9c-6973-4d88-9618-b0a4d4db6690" />
+
+    - How do I know how to configure this object ? or what Attributes and values I can use inside ? Bcs the default values is just an empty brackets so I need to knwo obviously what goes inside . I can see in the README of the `module` . Base on this I can configure my own configurtion . I can define multuple Nodegroup inside `eks_managed_node_groups` attribute . I can have Blue Green deployment or I can have development, Staging etc.... Where each group will have it's own name . And inside the group I can have 1 or more Instances and I can define Configuration for those instances 
+
+ So I will have 3 Instances inside of type t3.medium
+
+<img width="400" alt="Screenshot 2025-04-15 at 13 34 43" src="https://github.com/user-attachments/assets/69b0f1a9-50b1-4508-9d0f-1475b3769910" />
+
+So now I have minimum required to create Cluster . I can `terraform apply` it 
+
+NOTE : Also Now I have to create the Role for the Cluster and for the Node Group as well . This `eks module` acutally define those roles and how they should be created . So we don't have to configure them 
+
+```
+module "eks" {
+ source  = "terraform-aws-modules/eks/aws"
+ version = "20.35.0"
+
+ cluster_name = "myapp-eks-cluster"
+ cluster_version = "1.32"
+
+ enable_cluster_creator_admin_permissions = true
+
+ subnet_ids = module.myapp-vpc.private_subnets
+ vpc_id = module.myapp-vpc.vpc_id
+
+ eks_managed_node_groups = {
+     dev = {
+       instance_types = ["t3.medium"]
+ 
+       min_size     = 1
+       max_size     = 3
+       desired_size = 3
+     }
+   }
+
+ tags = {
+  evironment = "dev"
+  application = "myapp"
+ }
+} 
+```
 
 ## Provision-EKS-3
 
