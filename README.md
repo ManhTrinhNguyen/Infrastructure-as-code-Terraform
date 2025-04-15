@@ -2170,10 +2170,12 @@ tags = {
 
 public_subnet_tags = {
   "kubernetes.io/cluster/myapp-eks-cluster" = "shared"
+  "kubernetes.io/role/elb" = 1
 }
 
 private_subnet_tags = {
   "kubernetes.io/cluster/myapp-eks-cluster" = "shared"
+  "kubernetes.io/role/internal-elb" = 1
 }
 ```
 
@@ -2185,7 +2187,29 @@ private_subnet_tags = {
 
   - However tags are also for referencing components from other components programmatically . So basically in EKS Cluster when we create the Control Plane, one of the processes in the Control Plane is Kubernetes Cloud Controller Manager, and this Cloud Controller Manager actually that com from AWS is the one that Orchestrates connecting to the VPC, connecting to the Subnets, connecting with the Worker Nodes and all these configurations . So basically talking to the `resources` in our AWS Account and Creating some stuff . So Kubernetes Cloud Manager needs to know which resources in our account it should talk to, It needs to knwo which VPC should be used in a Cluster, Which Subnet should be use in the Cluster . Bcs We may have multiple VPC and multiple Subnets and we need to tell control Plane or AWS, use these VPCs and these subnet for this specific cluster . We may also have multiple VPCs for multiple EKS Clusters so it has to be specific `label` that Kubernetes Cloud Controller Manager can acutally detect and identify
 
-  - The same way I tag a VPC I need to tag Subnet as well that the Subnet can be found and identify  
+  - The same way I tag a VPC I need to tag Subnet as well that the Subnet can be found and identify
+
+  -  These tag are basically there to help the Cloud Control Manager identify which VPC and subnet it should connect to , and that is why I have the Cluster Name here bcs obviously if I have multiple Cluster I can differentiate the VPCs and subnets or the lables using the cluster name
+
+  -  For Public and Private Subnets I need one more tags respectively. 
+    
+    - In public subnets all three of them, I will add another the tag called `kubernetes.io/role/elb`
+
+    - And for Private Subnet I have `kubernetes.io/role/internalelb`
+
+    - So public has `elb` which is elastic load balancer and private has internal `elb` . So basically when I create load balancer service in Kubernetes, Kubernetes will provision a cloud native load balancer for that service . However it will provision that cloud load balancer in the Public Subnet bcs the Load Balancer is actually an entry point to a Cluster and Load Balancer gets an external IP Address so that we can communicate to it from outside, like from browser request or from other clients . And since we have Public Subnet and Private Subnet in VPC the Public one is actually a subnet that allows communication with Internet . Private subnet closed to Internet . So If I deploy Load Balancer in Private one I can't access it bcs it blocked . So kubernetes need to know basically which one is a public subnet so that it can create and provision that load balancer in the public subnet So that the load balancer can be accessed from the Internet . And there are also internal Load Balancers in AWS which will be created for services and components inside the Private Subnets 
+
+    - Basically Private Subnet is the one that not for the Internet and I can't access it from the Browser or external Resources . Public subnet is open for external request . All the resources that AWS provision that has an external IP Address must be deploy in Public Subnet
+
+    - So these tag are acutally for consumption by the Kubernetes Cloud Controller Manager and AWS load balancer controller that is responsible for creating load balancer for Load Balancer Service Type for example . Those 2 master Processes are the ones that need those tags to indentify the right components and to differentiate between public and private subnet
+
+    - !!! NOTE : Those tags are required
+
+ Whenever I create new `module` I have to do `terraform init` first . The `provider` plugin and `modules` get installed bcs they are a dependencies that need to be downloaded first before It can be use . And they get download from `.terraform` folder 
+
+Execute `terraform plan` I will see the output of all the different `resources` that will be created when I execute my configuration 
+
+ 
 
 ## Provision-EKS-2
 
