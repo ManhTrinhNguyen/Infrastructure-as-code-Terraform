@@ -2332,7 +2332,16 @@ How to connect to Cluster using kubectl
  
   - Now the context was configured in my user home directory in the `/.kube/config` . This file contain all the information that kubectl and AWS IAM authenticator need to authenticate with to authenticate with AWS also authenticate with EKS Cluster
 
-  - If I try `kubectl get node` I will get error time out Which mean more thing need to configure  
+  - If I try `kubectl get node` I will get error time out Which mean more thing need to configure
+ 
+  - I need to explicitly enable public access to my Cluster . `cluster_enpoint_public_access = true` . Which make my Kubernetes Cluster or the API server process on the Kubernetes Cluster publicly accessible from external clients like kubectl
+
+Now I can connect to my Cluster . `kubectl apply -f <nginx-config>`
+
+Now I can go EC2 - and Load Balancer . And 1 Load Balancer acutally get created bcs I create a Service of type Load Balancer . And Load Balancer available in all three AZs in the Region that I specified . It also have a DNS name I that I can access it from . The Port 80 automatically open so I don't have to adjust the security Group and open the Port it all happen automatically when load balancer get provisioned . 
+
+This is a best part of Terraform . Even though it took sometime to put together all this configuration and go through all the attribute I only have that time investment once, I only need to configure all these understand all these attributes once so once I have the configuration set up here, I just do apply and can spin up the whole Cluster again without doing any manual work and when i done I just destroy it 
+  
 
 
 
