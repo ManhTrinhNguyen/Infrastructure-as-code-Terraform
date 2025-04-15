@@ -2194,15 +2194,15 @@ private_subnet_tags = {
   -  For Public and Private Subnets I need one more tags respectively. 
     
     - In public subnets all three of them, I will add another the tag called `kubernetes.io/role/elb`
-
+    
     - And for Private Subnet I have `kubernetes.io/role/internalelb`
-
+    
     - So public has `elb` which is elastic load balancer and private has internal `elb` . So basically when I create load balancer service in Kubernetes, Kubernetes will provision a cloud native load balancer for that service . However it will provision that cloud load balancer in the Public Subnet bcs the Load Balancer is actually an entry point to a Cluster and Load Balancer gets an external IP Address so that we can communicate to it from outside, like from browser request or from other clients . And since we have Public Subnet and Private Subnet in VPC the Public one is actually a subnet that allows communication with Internet . Private subnet closed to Internet . So If I deploy Load Balancer in Private one I can't access it bcs it blocked . So kubernetes need to know basically which one is a public subnet so that it can create and provision that load balancer in the public subnet So that the load balancer can be accessed from the Internet . And there are also internal Load Balancers in AWS which will be created for services and components inside the Private Subnets 
-
+    
     - Basically Private Subnet is the one that not for the Internet and I can't access it from the Browser or external Resources . Public subnet is open for external request . All the resources that AWS provision that has an external IP Address must be deploy in Public Subnet
-
+    
     - So these tag are acutally for consumption by the Kubernetes Cloud Controller Manager and AWS load balancer controller that is responsible for creating load balancer for Load Balancer Service Type for example . Those 2 master Processes are the ones that need those tags to indentify the right components and to differentiate between public and private subnet
-
+    
     - !!! NOTE : Those tags are required
 
  Whenever I create new `module` I have to do `terraform init` first . The `provider` plugin and `modules` get installed bcs they are a dependencies that need to be downloaded first before It can be use . And they get download from `.terraform` folder 
