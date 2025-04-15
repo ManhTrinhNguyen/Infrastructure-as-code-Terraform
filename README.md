@@ -6,11 +6,11 @@
 
 - [Modules Part 3](#Modules-3)
 
-- [Automate Provisoning EKS-Cluster Part 1] (#Provision-EKS-1)
+- [Automate Provisoning EKS-Cluster Part 1](#Provision-EKS-1)
 
-- [Automate Provisoning EKS-Cluster Part 2] (#Provision-EKS-2)
+- [Automate Provisoning EKS-Cluster Part 2](#Provision-EKS-2)
  
-- [Automate Provisoning EKS-Cluster Part 3] (#Provision-EKS-3)
+- [Automate Provisoning EKS-Cluster Part 3](#Provision-EKS-3)
 # Infrastructure-as-code-Terraform
 
 ## Overview 
