@@ -5,6 +5,12 @@
 - [Modules Part 2](#Modules-2)
 
 - [Modules Part 3](#Modules-3)
+
+- [Automate Provisoning EKS-Cluster Part 1] (#Provision-EKS-1)
+
+- [Automate Provisoning EKS-Cluster Part 2] (#Provision-EKS-2)
+ 
+- [Automate Provisoning EKS-Cluster Part 3] (#Provision-EKS-3)
 # Infrastructure-as-code-Terraform
 
 ## Overview 
@@ -2028,7 +2034,162 @@ We created `modules` . We are logically grouped similar `resources` that belong 
 
 We have all all the `resources` parameterzied which is the **best practice** . So all the values are set in one place in the tf vats file . If something changes we just adjust it in one place 
 
+## Provision-EKS-1
 
+In this part I will create EKS Cluster by using Terraform
+
+In previous I created EKS manually and it cost me a lot of time, If I want to change something on the exsting Infrastructure it will so not efficent . No history about changes . If I now needed to create the same environment somewhere else, maybe on another AWS account, maybe have an EKS Cluster for production environment, for dev environment etc .. basically just replicate the same exact cluster with the same configuration will be very difficult to remember and know exectly what we did and replicate that exactly on another environment . Finally what if I want to delete everything ? Take too much time
+
+ 
+#### Step to Create EKS 
+
+First we have Control Plane that managed by AWS itself that I need to create (EKS)
+
+Once I have Control Plane Nodes I need to connect those Worker Nodes to the Control Planes Nodes in order to have a complete cluster so that I can start deploying my application 
+
+For that I need a VPC where Worker Nodes will run and the create the Worker Node acutally . 
+
+<img width="600" alt="Screenshot 2025-04-15 at 10 11 39" src="https://github.com/user-attachments/assets/5a804669-9e93-480a-8728-ecba516b225d" />
+
+And I create cluster always in a specific region my region has multiple availability zones (2 or 3) . I end up with a highly available Control Plane which is managed by AWS which is running somewhere else, And I have the Worker Nodes that we create ourselves and connect to the Control Plane that we also want to be highly available so we want to deploy them into all the available AZs of our region  
+
+#### VPC
+
+I will remove the `main.tf` . I will create multiple Terraform configuration files and I will name them differently 
+
+I will first create VPC with all the Subnets and all the components needed inside VPC 
+
+When I create VPC I used Cloud Formation . Bcs Cloud Formantion has a template that configures a VPC in a way that EKS cluster will need it . 
+
+VPC for EKS cluster actually needs a very specific configuration of a VPC and the subnet inside as well as route tables and so on
+
+In this case I don't have a Cloud Formation template that I am gonna use, Cloud formation is actually an alternative to Terraform, as it's also an infrastructure provisioning tool however specificly for AWS . 
+
+What I gonna use instead is an existing ready module for creating a VPC for the EKS cluster . In the Terraform registry I have list of `modules` and one of them is AWS VPC . I can configure this VPC with all the inputs that I want by just passing in parameters and in the background it will actually create all the nescessary `resources` for VPC and Subnets and Route Tables and so on 
+
+In my project I will create `touch vpc.tf`
+
+```
+vpc.tf
+
+variable vpc_cidr_block {}
+private_subnet_cidr_block {}
+public_subnet_cidr_block {}
+
+module "vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "5.19.0"
+
+  ## Pass in the VPC attribute that we need to create VPC for EKS Cluster
+
+  name = "myapp-vpc"
+  cidr = var.vpc_cidr_block
+
+  private_subnet = var.private_subnet_cidr_block ## This will be an array of cidr block
+  public_subnet = var.public_subnet_cidr_block ## This will be an array of cidr block
+  
+}
+```
+
+Just like `providers` are baciscally packages of code that will be installed and downloaded whenever we need them . `Module` are also a code get downloaded on `terraform init`
+
+**Best practice** Always use `variable` instead of hardcoding
+
+Specify the Cidr block of subnets . Basically inside the `module "vpc"` the subnet `resources` are already define . So subnet  will be created . We can decide how many subnet and which subnets and with which cidr blocks they will be created . And for EKS specifically there is actually kind of the **best practice** for how to configure VPC and its Subnets 
+
+<img width="600" alt="Screenshot 2025-04-15 at 10 47 23" src="https://github.com/user-attachments/assets/80387a5f-ab19-4a5d-a1af-4cef23ca1317" />
+
+**Best Practice** : create one Private and one Public Subnet in each of the Availability Zones in the Region where I am creating my EKS . In my region there are 3 AZs so I need to create 1 Private and 1 Public key in each of those AZs so 6 in total
+
+Values of those Variable: 
+
+  - Subet private and public cidr block have to be a subnet or part of the vpc block
+
+```
+vpc_cidr_block = "10.0.0.0/16"
+
+private_subnet_cidr_blocks = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+
+public_subnet_cidr_blocks = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
+```
+
+I need to define that I want those subnets to be deployed in all the availability zones . So I want them to be distributed to these 3 AZs that I have in the Region and for that I have an attribute here called `azs` and I need to define a name of those AZs `azs = ["us-west-1a", "us-west-1b", "us-west-1c"]` . 
+
+  - But I want to dynamically set the Regions . By using `data` to query AWS to give me all the AZ for the region
+
+  - I have to specify which Region I am querying the AZs from . Then it will give me AZs from the Region that is defined inside the AWS providers
+
+  - How do I know the this Object acutally has `names` attribute ? Go to Docs of `resources` or `data`, I have the section Attribute Reference data source exprorts
+
+  - also I can look up `azs` what this value expected 
+    
+  ```
+  provider "aws" {
+    region = "us-west-1"
+  }
+  
+  data "aws_availability_zones" "azs" {} # data belong to a provider so I have to specify the Provider .
+
+  module "myapp-vpc" {
+
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "5.19.0"
+
+  azs = data.aws_availability_zones.azs.names
+  }
+  ```
+
+Then I will enable the `enable_nat_gateway` . By default the net gateway is enabled for the the subnets . However we are going to set it to true for transparency and Also I am going to enable single nat gateway which basically creates a shared common net gateway for all the private Subnet so they can route their internet traffic through this shared net Gateway
+
+```
+provider "aws" {
+  region = "us-west-1"
+}
+
+data "aws_availability_zones" "azs" {} # data belong to a provider so I have to specify the Provider .
+
+module "myapp-vpc" {
+
+source  = "terraform-aws-modules/vpc/aws"
+version = "5.19.0"
+
+enable_nat_gateway = true
+single_nat_gateway = true
+enable_dns_hostnames = true 
+}
+```
+
+Finally I want to `enable_dns_hostnames` inside our VPC . For example when EC2 instances gets created it will get assigned the Public IP address, and private IP address but it will also get assigned the public and private DNS names that resolve to this IP address 
+
+I want add tags : 
+
+```
+tags = {
+  "kubernetes.io/cluster/myapp-eks-cluster" = "shared" # This will be a cluster name
+}
+
+public_subnet_tags = {
+  "kubernetes.io/cluster/myapp-eks-cluster" = "shared"
+}
+
+private_subnet_tags = {
+  "kubernetes.io/cluster/myapp-eks-cluster" = "shared"
+}
+```
+
+  - Why do I have this tags ? `"kubernetes.io/cluster/myapp-eks-cluster" = "shared"` . Basically I have used tag to lables our resources so that I know for example which environment they are belong to so we have a tag with environment prefix
+
+  - One use case is tags are for human consumption so that we can detect using the label that it's dev `resource` for example .
+
+<img width="635" alt="Screenshot 2025-04-15 at 11 38 03" src="https://github.com/user-attachments/assets/a09f00bc-7293-4d9b-80cb-1792ca9d6b87" />
+
+  - However tags are also for referencing components from other components programmatically . So basically in EKS Cluster when we create the Control Plane, one of the processes in the Control Plane is Kubernetes Cloud Controller Manager, and this Cloud Controller Manager actually that com from AWS is the one that Orchestrates connecting to the VPC, connecting to the Subnets, connecting with the Worker Nodes and all these configurations . So basically talking to the `resources` in our AWS Account and Creating some stuff . So Kubernetes Cloud Manager needs to know which resources in our account it should talk to, It needs to knwo which VPC should be used in a Cluster, Which Subnet should be use in the Cluster . Bcs We may have multiple VPC and multiple Subnets and we need to tell control Plane or AWS, use these VPCs and these subnet for this specific cluster . We may also have multiple VPCs for multiple EKS Clusters so it has to be specific `label` that Kubernetes Cloud Controller Manager can acutally detect and identify
+
+  - The same way I tag a VPC I need to tag Subnet as well that the Subnet can be found and identify  
+
+## Provision-EKS-2
+
+## Provision-EKS-3
 
 
 
