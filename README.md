@@ -2384,6 +2384,19 @@ The control plane communicates with worker nodes primarily for tasks like execut
 
 It's important to ensure that the security groups associated with your worker nodes allow inbound traffic on port 10250 from the control plane's ENIs. EKS manages these ENIs and their associated security groups to maintain secure communication. 
 
+#### VPC Configuration 
+
+In general, your nodes are going to run in either a public or a private subnet. Whether a subnet is public or private refers to whether traffic within the subnet is routed through an internet gateway. If a subnet is associated with a route table that has a route to an internet gateway, it’s known as a public subnet. If a subnet is associated with a route table that does not have a route to an internet gateway, it’s known as a private subnet.
+
+The ability for traffic that originates somewhere else to reach your nodes is called ingress. Traffic that originates from the nodes and leaves the network is called egress. Nodes with public or elastic IP addresses within a subnet configured with an internet gateway allow ingress from outside of the VPC. Private subnets usually include a NAT gateway, which allows traffic from the nodes to leave the VPC (egress).
+
+There are three typical ways to configure the VPC for your Amazon EKS cluster:
+
+1. Using only public subnets. Nodes and ingress resources (like load balancers) all are instantiated in the same public subnets.
+
+2. Using public and private subnets. Nodes are instantiated in the private subnets and ingress resources (like load balancers) are instantiated in the public subnets.
+
+3. Using only private subnets. Nodes are instantiated in private subnets. There are no public ingress resources as this configuration is only used for workloads that do not need to receive any communications from the public internet.
 
 #### NAT gateway 
 
