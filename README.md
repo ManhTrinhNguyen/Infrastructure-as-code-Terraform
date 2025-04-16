@@ -11,6 +11,8 @@
 - [Automate Provisoning EKS-Cluster Part 2](#Provision-EKS-2)
  
 - [Automate Provisoning EKS-Cluster Part 3](#Provision-EKS-3)
+
+- [How do Control Plane and Worker Node Communicate ?](#Control-Plane-Worker-Node-Communication)
 # Infrastructure-as-code-Terraform
 
 ## Overview 
@@ -2342,14 +2344,80 @@ Now I can go EC2 - and Load Balancer . And 1 Load Balancer acutally get created 
 
 This is a best part of Terraform . Even though it took sometime to put together all this configuration and go through all the attribute I only have that time investment once, I only need to configure all these understand all these attributes once so once I have the configuration set up here, I just do apply and can spin up the whole Cluster again without doing any manual work and when i done I just destroy it 
   
+## Control-Plane-Worker-Node-Communication
+
+#### EKS Cluster Architecture 
+
+An EKS consist of 2 VPCs, 1 VPC managed by AWS that run a Control Plane, 1 VPC of the User (my account) that run a Worker Nodes (EC2 Isntances) where containers run as well as other AWS infrastructure (like load balancer) used by Cluster . 
+
+All the Worker Nodes need a ability to connect to managed API server endpoint. This Connection allow Worker Nodes to register itself with the Kubernetes Control Plane and recieved request to run application pod 
+
+The Worker Nodes connec either to the public endpoint, or through EKS-managed Elastic Network Interface (ENI) that are place in my AWS Account Subnet that I provide when create Cluster . The Route that Worker Node take to connect determine by whether I have enable or disable the Private Endpoint for my Cluster . Even when private endpoint is disabled, EKS still provision ENIs to allow for actions that originate from the Kubernetes API server to Worker Nodes, such as `kubectl exec` `kubectl logs`
+
+#### The order of Operation for Worker Node to come online and start receiving commands from Control Plane is  
+
+EC2 Instance Start . Kubelet and Kubernetes Agents are started as a part of boot process on each Instance . 
+
+Kubelet reach out to Kubernetes Cluster Endpoint to register the Node . It connect to Public Endpoint outside of the VPC or to Private Endpoint within the VPC 
+
+Kubelet receives API commands and send regular status and heartbeat to the endpoint . When I query API-Server (kubectl get nodes), I see the latest status that each Node's Kubelet has report back to API server 
+
+If Node unable to reach cluster endpoint, it is unable to register with the Control Plane thus unable to receives command to start and stop the Pod . If new nodes are unable to connect, this prevents you from being able to use these nodes as part of the cluster.
+
+#### Networking Mode 
+
+EKS has two ways of controlling access to the cluster endpoint. Endpoint access control lets you configure whether the endpoint is reachable from the public internet or through your VPC. You can enable the public endpoint (default), private endpoint, or both endpoints at the same time. When the public endpoint is enabled, you can also add CIDR restrictions, which allow you to limit the client IP addresses that can connect to the public endpoint.
+
+**Communication from Worker Nodes to the Control Plane**
+
+When a worker node joins an EKS cluster, it needs to connect to the Kubernetes API server to register itself and receive instructions. This communication path depends on the cluster's endpoint access configuration:​
+
+Public Endpoint Only: Worker nodes communicate with the API server over the internet via the public endpoint. This requires the nodes to have a route to the internet, typically through a NAT gateway or an internet gateway. ​
+
+Private Endpoint Enabled: EKS provisions Elastic Network Interfaces (ENIs) in your VPC subnets, allowing worker nodes to communicate with the API server over the AWS private network. This setup doesn't require internet access for the nodes. ​
+
+The API server listens on port 443 (HTTPS), and worker nodes initiate outbound connections to this port to interact with the control plane.
+
+**Communication from the Control Plane to Worker Nodes**
+
+The control plane communicates with worker nodes primarily for tasks like executing commands (kubectl exec), fetching logs, and health checks. This communication is facilitated through the ENIs that EKS places in your VPC subnets. The control plane connects to the kubelet on each worker node over port 10250 (HTTPS). ​
+
+It's important to ensure that the security groups associated with your worker nodes allow inbound traffic on port 10250 from the control plane's ENIs. EKS manages these ENIs and their associated security groups to maintain secure communication. 
 
 
+#### NAT gateway 
 
+NAT Gateway Always Sits in a Public Subnet
 
+Because a NAT Gateway needs internet access, it must be in a public subnet that has:
 
+ - A route to the Internet Gateway (IGW)
+ 
+ - A public IP address assigned
 
+**What does it do?**
 
+A NAT Gateway allows:
 
+ - Instances in private subnets to initiate outbound connections to the internet
+ 
+ - But it blocks inbound connections from the internet
+
+For example:
+
+EC2s or EKS worker nodes in private subnets can pull images from DockerHub or ECR. But no one from the internet can directly reach those EC2s
+
+**How traffic flows:**
+
+Let’s say a node in the private subnet wants to pull an image:
+
+Node (in private subnet) sends request (e.g., to DockerHub)
+
+Route table sends traffic to NAT Gateway (in public subnet)
+
+NAT Gateway sends traffic out to the Internet Gateway
+
+The response comes back and is routed properly to the originating node
 
 
 
