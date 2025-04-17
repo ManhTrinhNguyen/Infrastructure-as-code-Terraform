@@ -2655,6 +2655,62 @@ stage("deploy") {
 }
 ```
 
+#### Final Modification and Execute Pipeline 
+
+Set IP address of Jenkins to allow Jenkin to ssh to AWS . `variable jenkins_ip { default = ""}` and I will add that to a security group `resource` . If the Jenkin IP is dynamic then I can have a default here and override it from Jenkinfile using `TF_VAR_name`
+
+```
+ingress {
+ from_port = 22
+ to_port = 22
+ protocol = "TCP"
+ cidr_blocks = [var.my_ip, var.jenkins_ip]
+}
+```
+
+#### Docker Login to pull Docker Image 
+
+The problem here is when I pull Image from Private repository I first have to do docker Login so that the Server we are trying to pull that image to authenticate with the Private Repository bcs it is secured 
+
+Docker login take username and password . Now the difference here is that docker login in `build image stage` get execute on Jenkin Server so Jenkin itself can authenticate with Docker private Repository to push an image bcs image is on the Jenkins server itself . But in `deploy stage` I want to do docker login from EC2 Server 
+
+So in `server-cmd.sh`
+
+```
+export IMAGE=$1
+export DOCKER_USER=$2
+export DOCKER_PASSWORD=$3
+
+echo $DOCKER_PASSWORD | docker login -u $DOCKER_USER --password-stdin
+
+docker-compose -f docker-compose.yaml up --detach
+
+echo "success"
+```
+
+`$DOCKER_PASSWORD`, `$DOCKER_USER` have to be define and pass on as Parameters . In shell command I can pass the script itself multiple parameters and for each parameter I have a number 
+
+To get `$DOCKER_PASSWORD`, `$DOCKER_USER` in Jenkinsfile , I get it from `Credentials` and read that value in ENV block  . `DOCKER_CRED = credentials('docker-hub-repo)` . 
+But it give me whole object, to get Username and passowrd from it : `${DOCKER_CREDS_USR}`, `${DOCKER_CRED_PSW}` those 2 value automatically created in Jenkin ENV when I am extracting credentials with username password type I get additional environment varialbe set 
+
+```
+environment {
+DOCKER_CRED = credentials('docker-hub-repo) 
+}
+```
+
+<img width="635" alt="Screenshot 2025-04-17 at 15 07 38" src="https://github.com/user-attachments/assets/55d4b08d-ad92-4169-9235-23acc452ab14" />
+
+#### RUN CI/CD Pipeline
+
+
+
+
+
+
+
+
+
 
 
 
