@@ -13,6 +13,8 @@
 - [Automate Provisoning EKS-Cluster Part 3](#Provision-EKS-3)
 
 - [How do Control Plane and Worker Node Communicate ?](#Control-Plane-Worker-Node-Communication)
+
+- [Complete CI/CD with Terraform](#CI/CD-Terraform)
 # Infrastructure-as-code-Terraform
 
 ## Overview 
@@ -2431,6 +2433,150 @@ Route table sends traffic to NAT Gateway (in public subnet)
 NAT Gateway sends traffic out to the Internet Gateway
 
 The response comes back and is routed properly to the originating node
+
+
+## CI/CD-Terraform 
+
+#### Overview 
+
+In previous use case which built a docker Image in a pipeline and then deployed that Image on a remote Server, I will take that use case and integrate Terraform in order to provision that remote server as part of CI/CD process 
+
+With Terraform I will start with a clean State so I don't have any running instances provisioned here . So I will provision a server using Terraform before we deploy it 
+
+I will create a new `stage("provision server")` in Jenkinsfile . And this will be a part where Terraform will provison create the new Server for me so that I can deploy my application on it, which lets me automate that part of creating a remote server also using CI/CD pipeline . In order to do that I have to do a couple of thing . 
+
+  - First I need to create a Key-pair an SSH key pair for the server . Whenever I create an Instance I need to assign an SSH key pair so that I can SSH into that Server .
+
+  - Second : Install Terraform inside Jenkins Container . Bcs I want to execute Terraform Command in Jenkins
+
+  - After that I will create Terraform file inside my Project so I can execute `terraform apply` inside the folder where I have defined Terraform config files
+
+  - **Best Practice** To include everything that my application needs, including the Infrastructure automation, application configuration automation, all of this code inside the application itself
+
+#### Create SSH Key Pair 
+
+I could either go inside Jenkins container and create this public private key using `ssh keygen`, or as a alternative I can create one key pair inside AWS manually and then give Jenkins basically or create a credential in Jenkins from that key pair 
+
+I will create a key pair inside AWS and then give it to Jenkins instead of creating from Terraform 
+
+Go to AWS - EC2 -> Create key pair `.pem`
+
+After that I need to give that PEM file to Jenkins . Inside Multi Branch Pipeline credentials I will create a new Credential and this is going to be SSH credential .
+
+  - ID : `server-ssh-key`
+
+  - Username: is the username that will be logging into the Server with SSH . On EC2 Instance the user I get out of the box is `ec2-user`
+
+  - Private key : paste the content from `.pem` file
+
+#### Install Terraform inside Jenkins Container 
+
+SSH into my Droplet and then go inside Jenkins container and we are going to install Terraform inside the Container 
+
+SSH to Droplet Server : `ssh root@<Ip-address>`
+
+Go inside the container : `dockcer exec -it -u 0 <container-id> bash`
+
+On Hashicorp Download I can see installation for different OS (https://developer.hashicorp.com/terraform/downloads) . 
+
+Check what OS that I have `cat /etc/os-release` . 
+
+This time I will choose Ubuntu/Debian . I will Copy and paste this to my Jenkin container . Bcs I am loggin in as Root User so I don't need `sudo`
+
+```
+wget -O - https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list
+
+apt update && apt install terraform
+```
+
+#### Terraform Configuration File 
+
+In the App I will add folder `mkdir terraform` 
+
+Inside `terraform` folder add: `touch main.tf` 
+
+I have already create a Terraform for deploy EC2 instances on AWS with SG and everything so I will just go over to Terraform project where I did it in module 11 to 13 . I will copy the whole thing in `main.tf` but make some adjustment 
+
+Remove Key-Pair 
+
+In `resources "aws_instance"` set `key_name="myapp-key-pair"` this is the key name I have create it inside AWS 
+
+Copy the `entry-script.sh` . 
+
+In this case I want to deploy and execute `docker-compose` bcs I am copying the Docker Compose file to EC2 Instance and executing Docker Compsose command 
+
+To install docker compse inside Jenkins : (https://docs.docker.com/compose/install/standalone/)
+
+In `entry-script.sh`
+
+```
+sudo yum update -y && sudo yum install -y docker
+sudo systemctl start docker
+sudo usermode -aG docker ec2-user
+
+# Dowload docker compose
+curl -SL "https://github.com/docker/compose/releases/download/v2.35.0/docker-compose-linux-x86_64" -o /usr/local/bin/docker-compose
+
+chmod +x /usr/local/bin/docker-compose
+```
+
+How do I set a `.tfvars` values when we are executing the Terraform configuration files from CI/CD pipeline 
+
+In `main.tf` I can provide Default Values for `vpc_cidr_block` and `subnet_cidr_block` so I don't have to provide Value all the time and just use default values, however I still have the option to override it 
+
+```
+main.tf
+
+provider "aws" {
+ region = var.region
+}
+
+variable vpc_cidr_block {
+ defafult = "10.0.0/16"
+}
+
+variable subnet_cidr_block {
+ default = "10.0.10.0/24"
+}
+
+variable avail_zone {
+ default = "us-west-1a"
+}
+
+variable env_prefix {
+ default = "dev"
+}
+
+variable my_ip {
+ default = "my ip address"
+}
+
+variable instance_type {
+ default = "t3.medium"
+}
+
+variable region {
+ default = "us-west-1"
+}
+```
+
+After the I will create `variable.tf` file then copy all the variable code above to it 
+
+Remove `output aim`
+
+#### Provision Stage In Jenkinsfile
+
+
+
+
+
+
+
+
+
+
 
 
 
