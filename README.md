@@ -2437,8 +2437,7 @@ NAT Gateway sends traffic out to the Internet Gateway
 
 The response comes back and is routed properly to the originating node
 
-
-## CI/CD-Terraform 
+## CI/CD-Terraform
 
 #### Overview 
 
