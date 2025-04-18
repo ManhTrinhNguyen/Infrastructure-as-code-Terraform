@@ -2064,6 +2064,8 @@ And I create cluster always in a specific region my region has multiple availabi
 
 #### VPC
 
+More Infomation about VPC for EKS (https://docs.aws.amazon.com/eks/latest/best-practices/subnets.html?utm_source=chatgpt.com) 
+
 I will remove the `main.tf` . I will create multiple Terraform configuration files and I will name them differently 
 
 I will first create VPC with all the Subnets and all the components needed inside VPC 
