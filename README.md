@@ -16,6 +16,8 @@
 
 - [Complete CI/CD with Terraform](#CI/CD-Terraform)
 
+- [Remote State in Terraform](#Remote-State)
+
 # Infrastructure-as-code-Terraform
 
 ## Overview 
@@ -2701,7 +2703,7 @@ DOCKER_CRED = credentials('docker-hub-repo)
 
 <img width="635" alt="Screenshot 2025-04-17 at 15 07 38" src="https://github.com/user-attachments/assets/55d4b08d-ad92-4169-9235-23acc452ab14" />
 
-#### RUN CI/CD Pipeline
+## Remote-State
 
 
 
