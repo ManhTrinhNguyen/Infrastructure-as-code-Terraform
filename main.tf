@@ -103,7 +103,7 @@ data "aws_ami" "latest-amazon-image" {
 
   filter {
     name = "name"
-    values = ["Deep Learning Proprietary Nvidia Driver AMI GPU TensorFlow 2.16 (Amazon Linux 2) 20240729"]
+    values = ["al2023-ami-*-x86_64"]
   }
 
   filter {
@@ -131,6 +131,7 @@ resource "aws_instance" "myapp-server" {
     Name = "${var.env-prefix}-server"
   }
 }
+
 
 resource "aws_key_pair" "ssh-key" {
   key_name = "server-key"
