@@ -2299,41 +2299,152 @@ module "eks" {
 } 
 ```
 
-## Provision-EKS-3
+## ☸️ Amazon EKS Cluster Overview
 
-#### Cluster Overview 
+This section documents what gets automatically created and configured when an EKS cluster is provisioned using Terraform.
 
-Checkout Resources which is basically things that are already running one those Worker Nodes . And I have Kubernetes Work Loads like Pods, Daemon Set, Deployment, etc ... And I also have kube-proxy . And I have 2 coreDNS running in my Cluster . And I can see Configmap and Secret .  This is all the default that EKS and Kubernetes give me inside my cluster when I install it . This is basically all Kubernetes Processes in order to run the Cluster 
+---
 
-I can also some configuraton data for the EKS Cluster itself like server endpoint, the certificate authority data, which subnets are part of that Cluster . 
+### 📦 Kubernetes-Level Resources (Inside the Cluster)
 
-Also with Subnet are part of that cluster. Node Group name or Fargate profile whichever I have available . 
+Once the EKS cluster is up and running, Kubernetes creates several **default workloads and system resources** automatically.
 
-So the Configuration part is more the configuration data on the AWS Infrastructure part, And the resources are more the Kubernetes level resources and configuration 
+| Resource        | Description                                                                 |
+|----------------|-----------------------------------------------------------------------------|
+| `kube-proxy`    | A DaemonSet that runs on **every worker node**. Manages Kubernetes service routing. |
+| `coreDNS`       | Provides **DNS resolution** inside the cluster. Typically runs 2 replicas by default. |
+| `Pods` / `Deployments` / `DaemonSets` | These are basic workloads that represent containers or services. |
+| `ConfigMap`     | Used to store non-sensitive config data in key-value format.               |
+| `Secrets`       | Stores sensitive data such as tokens, passwords, etc., securely.           |
 
-  - kube-proxy is running on each of the Servers
+These are the **core components that Kubernetes needs** to keep the cluster functioning.
 
-In IAM Service . I can see the `myapp-eks-cluster-...` role is created by Terraform 
+---
 
-In EC2 I can see 3 Nodes running in my AWS account. And each one is in a differen AZs which is great thing bcs I have high Availability by distributing my Servers accross AZs 
+### ⚙️ AWS-Level Configuration (Outside the Cluster)
 
-In VPC I have cidr block all default componet get created 
+Besides Kubernetes resources, the cluster also comes with AWS infrastructure and metadata.
 
-  - Also Route Table and I have 3 Route Table actually got created for my VPC . 1 is Default, and 2 for public and private
+| Configuration Item          | Purpose                                                                 |
+|-----------------------------|-------------------------------------------------------------------------|
+| **Cluster Endpoint (API URL)** | The public/private URL used by `kubectl` or the control plane to manage the cluster. |
+| **Certificate Authority (CA)** | Used to securely communicate with the Kubernetes API server.         |
+| **Subnets & AZs**              | Specifies which VPC subnets are part of the EKS cluster. High availability is achieved by distributing across multiple AZs. |
+| **Node Group or Fargate Profile** | Shows whether your workloads run on EC2 or serverless Fargate nodes. |
 
-  - with Public Route table that was created with an Internet Gateway Route . IGW allow VPC to talk to the Internet
+> These items belong more to **AWS infrastructure** and help configure how Kubernetes runs under the hood.
 
-  - with Private Route Table that was created with NAT routing so this is baciscally a route that allow worker Nodes to connect to the Control Plan Node . And the reason I need that is bcs our Worker Nodes are actually in one VPC and the Control Plane Node in another VPC which is managed by AWS . So these resources in two different VPC or two different Private Network and they ahve to talk to each other . And AWS make that communication possible without an Internet Gateway but using NAT gateway instead . So resources can still privately talk to each other from diferent VPCs . And that is basically the configuration for routing traffic back and forth from control plane nodes to Worker Nodes
+---
 
-  - And I also have Subnet Association with those Route Table
+### 🧠 How AWS Distributes the Infrastructure
 
-  - Also In the Subnet I have 3 Private Subnet and 3 Public Subnet on each AZs. All the Private Subnet they associate with the NAT Gateway and all the Public Subnet they associate with Internet Gateway
+- **3 EC2 worker nodes** are running — one in each AZ (for high availability).
+- These nodes were created using a **Managed Node Group** via Terraform.
+- Each node is associated with a private subnet and **kube-proxy** runs on each of them.
 
-In the Security Group . There is 3 different SG created in the back ground using VPC `module` 
+---
 
-  - One is `eks-cluster-sg` . Inbound rule is allow all type of traffic on any ports within the cluster . Bcs the Pods and Services and nodes they have to communicate with each other from the different Worket Nodes, as well as commnicate with pods, containers and services On Control Plane Nodes
+### 🌐 VPC & Subnet Architecture
 
-  - Another one is `eks-cluster-node` and `eks-cluster-cluster` these 2 are for NodeGroup and cluster. So baciscally I have 2 Separate VPCs, 1 for Worker Nodes and 1 for Control Planes Nodes and all the Components all the Services running on Worker Nodes and Control Plane Nodes have to also talk to each other across these two different VPCs . and the Services actually run and listen on various Ports so with these SG I am opening the Ports so that these Services can talk to each other between those two VPCs . So I am opening the Correct Ports on both Worker nodes and Control Plane Nodes and as a source o who can access those ports are the security group themselves. Which again complies to the least privilege requirement of security bcs I am say only those resources that need to talk to each other will have permissions to talk to each other . So I have minimum require Permission on different Ports from different resources . And instead of having IP address ranges as the source of the communication so who can actually talk to the Services on these Ports . We have Security group as Sources where those different services are running
+Terraform also creates a custom VPC with a total of **6 subnets**:
+
+| Subnet Type | Count | Used For                          | Connected To            |
+|-------------|-------|------------------------------------|-------------------------|
+| Public      | 3     | Load Balancers, Internet Access    | Internet Gateway        |
+| Private     | 3     | Worker Nodes, Internal Traffic     | NAT Gateway             |
+
+Each subnet is placed in a different Availability Zone (AZ) for fault tolerance.
+
+---
+
+### 📡 Routing & Connectivity
+
+| Route Table Type | Purpose |
+|------------------|---------|
+| **Public Route Table** | Routes traffic from public subnets to the internet via an Internet Gateway. |
+| **Private Route Table** | Routes traffic from private subnets to the internet via a NAT Gateway. Required so worker nodes can pull container images and connect to the EKS control plane. |
+| **Default Route Table** | Created automatically by AWS. Not used in this configuration. |
+
+> 📌 The EKS control plane runs in an AWS-managed VPC. The worker nodes are in your VPC. AWS enables **cross-VPC communication privately** through NAT — no public internet needed.
+
+---
+
+### 🔐 IAM & Security Group Integration
+
+- **IAM Role**: An IAM role like `myapp-eks-cluster-...` is automatically created by Terraform to manage cluster permissions.
+
+### 🔐 EKS Security Groups Explained
+
+When provisioning an EKS cluster using the `terraform-aws-modules/eks/aws` and VPC module, **three main Security Groups (SGs)** are created automatically to manage communication between the control plane and the worker nodes.
+
+---
+
+#### ✅ 1. `eks-cluster-sg` – Control Plane Security Group
+
+- **Purpose**: Manages traffic **to and from the Kubernetes control plane** (API server and internal components).
+- **Inbound Rules**:
+  - Allow **all traffic** from within the cluster for Kubernetes components to function properly.
+- **Use Case**:
+  - Lets control plane components (e.g., Kubernetes API server) communicate with worker nodes and system components.
+  - Ensures services like `kube-proxy`, `coreDNS`, and `kubelet` can talk across nodes and the control plane.
+
+---
+
+#### ✅ 2. `eks-node-sg` – Worker Node Security Group
+
+- **Purpose**: Protects EC2 instances in the **Node Group**.
+- **Inbound Rules**:
+  - Allow traffic from **other nodes** (for pod-to-pod communication).
+  - Allow traffic from the **control plane** (for API instructions and health checks).
+- **Outbound Rules**:
+  - Allow all traffic (for internet access via NAT Gateway).
+- **Use Case**:
+  - Enables secure cluster networking, service discovery, and log/report forwarding.
+
+---
+
+#### ✅ 3. `eks-cluster-cluster` – Cross-Communication Security Group
+
+- **Purpose**: Enables secure **cross-VPC communication** between the AWS-managed control plane and your VPC's worker nodes.
+- **Rules**:
+  - **Security group references** are used instead of hardcoded IP ranges.
+  - Allows only necessary traffic between trusted components.
+- **Use Case**:
+  - Ensures least privilege by allowing only known SGs to communicate over the required ports.
+
+---
+
+#### 🧠 Why This Is Secure
+
+- No hardcoded public IPs or open CIDR blocks like `0.0.0.0/0`.
+- Follows **principle of least privilege** using security group IDs as traffic sources.
+- Scales automatically as new nodes join — no manual IP updates needed.
+
+---
+
+#### 📌 Visual Summary
+
+| Security Group        | Used For              | Inbound Source       | Purpose                                 |
+|-----------------------|-----------------------|-----------------------|------------------------------------------|
+| `eks-cluster-sg`      | Control Plane          | Node SG               | Allow API and cluster-level traffic      |
+| `eks-node-sg`         | Worker Nodes           | Itself, Control Plane | Pod-to-pod & kubelet/API communication   |
+| `eks-cluster-cluster` | Cross-VPC Communication| SG References         | Secure traffic between control and nodes |
+
+---
+
+This setup ensures **secure and efficient communication** between all parts of the EKS infrastructure, following AWS best practices.
+
+---
+
+#### ✅ Summary
+
+This architecture ensures:
+- **High availability** across 3 AZs
+- **Secure networking** between control plane and worker nodes
+- **Least privilege access** through security group references
+- **Auto-deployed Kubernetes core services** like DNS and kube-proxy
+
+This setup reflects **production-ready EKS best practices** provisioned through Infrastructure as Code with Terraform.
 
 #### Deploy nginx-App into Cluster 
 
