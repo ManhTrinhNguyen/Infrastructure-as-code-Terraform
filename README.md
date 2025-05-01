@@ -12,7 +12,7 @@
 
 - [Automate Provisoning EKS-Cluster Part 2](#Provision-EKS-2)
  
-- [Automate Provisoning EKS-Cluster Part 3](#Provision-EKS-3)
+- [Amazon EKS Cluster Overview](#Amazon-EKS-Cluster-Overview)
 
 - [How do Control Plane and Worker Node Communicate ?](#Control-Plane-Worker-Node-Communication)
 
