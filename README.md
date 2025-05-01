@@ -2299,7 +2299,7 @@ module "eks" {
 } 
 ```
 
-## ☸️ Amazon EKS Cluster Overview
+## Amazon EKS Cluster Overview
 
 This section documents what gets automatically created and configured when an EKS cluster is provisioned using Terraform.
 
