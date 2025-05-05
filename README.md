@@ -16,7 +16,7 @@
 
 - [How do Control Plane and Worker Node Communicate ?](#Control-Plane-Worker-Node-Communication)
 
-- [Complete CI/CD with Terraform](#CI/CD-Terraform)
+- [Complete CI CD with Terraform](#Complete-CI-CD-with-Terraform)
 
 - [Remote State in Terraform](#Remote-State)
 
@@ -2554,7 +2554,7 @@ NAT Gateway sends traffic out to the Internet Gateway
 
 The response comes back and is routed properly to the originating node
 
-## CI/CD-Terraform
+## Complete CI CD with Terraform
 
 #### Overview 
 
