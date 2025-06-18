@@ -2558,6 +2558,8 @@ The response comes back and is routed properly to the originating node
 
 ## Complete CI CD with Terraform
 
+(https://github.com/ManhTrinhNguyen/Jenkin-Exercise-Java-Maven/tree/Deploy-Provisoning-with-Terraform)
+
 #### Overview 
 
 In previous use case which built a docker Image in a pipeline and then deployed that Image on a remote Server, I will take that use case and integrate Terraform in order to provision that remote server as part of CI/CD process 
